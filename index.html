@@ -603,7 +603,7 @@
                 
                 // Add kids in this group
                 kids.forEach(kid => {
-                    const isPresent = attendance[kid.name] !== false; // Default to present
+                    const isPresent = attendance[kid.name] === true; // Default to absent (must check to mark present)
                     // Escape quotes in kid's name for use in HTML attribute
                     const escapedKid = kid.name.replace(/'/g, "\\'").replace(/"/g, '&quot;');
                     
@@ -630,7 +630,7 @@
             // Initialize attendance object
             kidsList.forEach(kid => {
                 if (attendance[kid] === undefined) {
-                    attendance[kid] = true;
+                    attendance[kid] = false; // Default to absent
                 }
             });
             
