@@ -1,0 +1,24 @@
+# Password Protection for Attendance Tracker
+# Note: GitHub Pages does NOT support .htaccess
+# This file is for reference if you deploy to a server that supports Apache
+
+# Enable password protection
+AuthType Basic
+AuthName "Soccer Team Attendance Tracker"
+AuthUserFile /path/to/.htpasswd
+Require valid-user
+
+# Optional: Protect specific file types
+<FilesMatch "\.(html|js|css)$">
+    AuthType Basic
+    AuthName "Soccer Team Attendance Tracker"
+    AuthUserFile /path/to/.htpasswd
+    Require valid-user
+</FilesMatch>
+
+# Optional: Allow access to specific IP addresses (uncomment and modify)
+# <RequireAll>
+#     Require ip 192.168.1.0/24
+#     Require valid-user
+# </RequireAll>
+
