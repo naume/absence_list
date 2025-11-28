@@ -376,7 +376,6 @@
         </div>
 
         <button id="saveBtn" class="btn" onclick="saveAttendance()">💾 Save Attendance</button>
-        <button class="btn" onclick="testAppsScriptConnection()" style="margin-top: 10px; background: #28a745;">🔧 Test Connection</button>
     </div>
 
     <script>
@@ -794,49 +793,6 @@
                 const saveBtn = document.getElementById('saveBtn');
                 saveBtn.disabled = false;
                 saveBtn.textContent = '💾 Save Attendance';
-            }
-        }
-
-        // Test function to debug connection
-        async function testAppsScriptConnection() {
-            try {
-                // Send test data in the expected format
-                const testData = {
-                    date: new Date().toISOString().split('T')[0],
-                    activityType: 'Test',
-                    presentKids: ['Test Kid'],
-                    totalKids: 1,
-                    absentKids: 0
-                };
-                
-                console.log('Testing connection to:', CONFIG.APPS_SCRIPT_URL);
-                console.log('Test data:', testData);
-                
-                // Use no-cors mode - we don't need to read the response
-                // User will verify in the spreadsheet
-                await fetch(CONFIG.APPS_SCRIPT_URL, {
-                    method: 'POST',
-                    mode: 'no-cors',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                    },
-                    body: new URLSearchParams({ data: JSON.stringify(testData) }).toString()
-                });
-                
-                // Wait a moment for the request to complete
-                await new Promise(resolve => setTimeout(resolve, 1500));
-                
-                showSuccess('Test data sent! Please check your "Absenzen" spreadsheet to see if a test row was added. If not, check Apps Script execution logs at https://script.google.com');
-                
-            } catch (error) {
-                console.error('Connection test error:', error);
-                // Try form submission as fallback
-                try {
-                    await saveViaFormSubmission(testData);
-                    showSuccess('Test data sent via form submission! Check your spreadsheet.');
-                } catch (formError) {
-                    showError('Connection test failed: ' + error.message + '. Check the browser console and Apps Script execution logs.');
-                }
             }
         }
 
