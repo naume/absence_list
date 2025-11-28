@@ -30,8 +30,8 @@ npm install --save-dev netlify-cli
 Create a `.env` file in the project root:
 
 ```bash
-SUPABASE_URL=https://bfhkzqbztkyojvbhkxzg.supabase.co
-SUPABASE_KEY=sb_publishable_5yd9iRP6pVcXpHuxPpLBVA_Sq-ulQWc
+SUPABASE_URL=https://your-project-id.supabase.co
+SUPABASE_KEY=eyJ...your-anon-key-here...
 ```
 
 **Important:** Add `.env` to your `.gitignore` file to keep your credentials safe!

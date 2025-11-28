@@ -11,6 +11,7 @@ If you're still getting RLS errors after creating a policy, try these steps:
 ## Step 2: Check Policy Configuration
 
 Make sure your policy has:
+
 - **Operation**: `INSERT` (not SELECT, UPDATE, or DELETE)
 - **Target roles**: `anon` (or `public`)
 - **WITH CHECK**: `true` (or empty, which defaults to true)
@@ -53,6 +54,7 @@ The key format matters:
 - **Service role key**: Also starts with `eyJ...` but is longer
 
 To check which key you have:
+
 1. Go to **Settings** → **API**
 2. Look at the keys:
    - `anon` `public` key - Use this with RLS policies
@@ -67,7 +69,7 @@ If RLS is still causing issues, use the service role key:
 3. Update your `.env` file:
 
 ```bash
-SUPABASE_URL=https://bfhkzqbztkyojvbhkxzg.supabase.co
+SUPABASE_URL=https://your-project-id.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key-here
 ```
 
@@ -95,4 +97,3 @@ If you've tried all of the above:
 2. Check Netlify Function logs (if deployed) or terminal output (if using `netlify dev`)
 3. Verify your Supabase project is active and not paused
 4. Make sure you're using the correct project URL and key
-

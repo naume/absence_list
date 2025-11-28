@@ -49,7 +49,7 @@ git push origin main
 
 1. Go to **Site settings** → **Environment variables**
 2. Add:
-   - `SUPABASE_URL` = `https://bfhkzqbztkyojvbhkxzg.supabase.co`
+   - `SUPABASE_URL` = `https://your-project-id.supabase.co`
    - `SUPABASE_SERVICE_ROLE_KEY` = `eyJ...your-service-role-key...`
 3. Click "Save"
 4. Go to **Deploys** tab → **Trigger deploy** → **Clear cache and deploy site**
@@ -57,6 +57,7 @@ git push origin main
 ### 5. Test Your Site
 
 Visit your Netlify URL and test:
+
 - ✅ Password login
 - ✅ Kids list loads
 - ✅ Attendance toggles work
@@ -71,4 +72,3 @@ Visit your Netlify URL and test:
 ## 🎉 That's It!
 
 Your attendance tracker will be live on Netlify!
-

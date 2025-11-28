@@ -84,7 +84,7 @@ You'll need to set these in Netlify dashboard after deployment:
    - Go to Site settings → Environment variables
    - Add these variables:
      ```
-     SUPABASE_URL = https://bfhkzqbztkyojvbhkxzg.supabase.co
+     SUPABASE_URL = https://your-project-id.supabase.co
      SUPABASE_SERVICE_ROLE_KEY = eyJ...your-service-role-key...
      ```
    - Click "Save"

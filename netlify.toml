@@ -7,6 +7,11 @@
 [functions]
   directory = "netlify/functions"
 
+# Exclude documentation files from secrets scanning
+# (These files contain example URLs, not actual secrets)
+# Set this in Netlify dashboard: Site settings → Build & deploy → Environment variables
+# Add: SECRETS_SCAN_OMIT_PATHS = "*.md"
+
 # Redirect rules (optional - for SPA routing if needed)
 [[redirects]]
   from = "/*"

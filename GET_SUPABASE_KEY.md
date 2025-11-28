@@ -60,11 +60,11 @@ Create or update `.env` in your project root:
 
 ```bash
 # For using anon key with RLS policies:
-SUPABASE_URL=https://bfhkzqbztkyojvbhkxzg.supabase.co
+SUPABASE_URL=https://your-project-id.supabase.co
 SUPABASE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJmaGt6cWJ6dGt5b2p2YmhreHpnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzI4OTI4MDAsImV4cCI6MjA0ODQ2ODgwMH0.your-actual-key-here
 
 # OR for using service_role key (bypasses RLS):
-SUPABASE_URL=https://bfhkzqbztkyojvbhkxzg.supabase.co
+SUPABASE_URL=https://your-project-id.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJmaGt6cWJ6dGt5b2p2YmhreHpnIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTczMjg5MjgwMCwiZXhwIjoyMDQ4NDY4ODAwfQ.your-actual-service-role-key-here
 ```
 
@@ -103,7 +103,7 @@ To verify your key is correct, check:
 ## Still Having Issues?
 
 1. Double-check you're in the correct Supabase project
-2. Verify the project URL matches: `https://bfhkzqbztkyojvbhkxzg.supabase.co`
+2. Verify the project URL matches your Supabase project URL
 3. Make sure your `.env` file is in the project root (same folder as `package.json`)
 4. Restart `netlify dev` after changing `.env`
 5. Check that `.env` is in `.gitignore` (it should be)

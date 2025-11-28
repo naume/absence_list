@@ -30,7 +30,7 @@ Both keys start with `eyJ...`, but they're different:
 Open your `.env` file and make sure it looks like this:
 
 ```bash
-SUPABASE_URL=https://bfhkzqbztkyojvbhkxzg.supabase.co
+SUPABASE_URL=https://your-project-id.supabase.co
 
 # Comment out or remove the anon key (we'll use service_role instead)
 # SUPABASE_KEY=eyJ...your-anon-key...
