@@ -71,6 +71,56 @@
             margin-bottom: 25px;
         }
 
+        .group-header {
+            font-size: 18px;
+            font-weight: 700;
+            color: #667eea;
+            margin-top: 20px;
+            margin-bottom: 10px;
+            padding: 12px;
+            border-bottom: 2px solid #e0e0e0;
+            cursor: pointer;
+            user-select: none;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #f0f4ff;
+            border-radius: 6px;
+            transition: background 0.2s;
+        }
+
+        .group-header:hover {
+            background: #e0e8ff;
+        }
+
+        .group-header:first-child {
+            margin-top: 0;
+        }
+
+        .group-header-icon {
+            font-size: 14px;
+            margin-right: 10px;
+            transition: transform 0.3s;
+        }
+
+        .group-header.collapsed .group-header-icon {
+            transform: rotate(-90deg);
+        }
+
+        .group-content {
+            overflow: hidden;
+            transition: max-height 0.3s ease-out, opacity 0.2s;
+            max-height: 2000px;
+            opacity: 1;
+        }
+
+        .group-content.collapsed {
+            max-height: 0;
+            opacity: 0;
+            margin: 0;
+            padding: 0;
+        }
+
         .kid-item {
             display: flex;
             align-items: center;
@@ -190,10 +240,17 @@
         .stats {
             display: flex;
             justify-content: space-around;
+            flex-wrap: wrap;
+            gap: 10px;
             margin-bottom: 20px;
             padding: 15px;
             background: #f8f9fa;
             border-radius: 8px;
+        }
+        
+        .stat-item {
+            flex: 1;
+            min-width: 100px;
         }
 
         .stat-item {
@@ -298,16 +355,16 @@
 
         <div class="stats">
             <div class="stat-item">
-                <div class="stat-number" id="totalKids">0</div>
-                <div class="stat-label">Total Kids</div>
+                <div class="stat-number" id="coachesStats">Coaches 0/0</div>
+                <div class="stat-label">Total / Present</div>
             </div>
             <div class="stat-item">
-                <div class="stat-number" id="presentKids">0</div>
-                <div class="stat-label">Present</div>
+                <div class="stat-number" id="playersStats">Players 0/0</div>
+                <div class="stat-label">Total / Present</div>
             </div>
             <div class="stat-item">
                 <div class="stat-number" id="absentKids">0</div>
-                <div class="stat-label">Absent</div>
+                <div class="stat-label">Total Absent</div>
             </div>
         </div>
 
@@ -319,30 +376,35 @@
         </div>
 
         <button id="saveBtn" class="btn" onclick="saveAttendance()">💾 Save Attendance</button>
+        <button class="btn" onclick="testAppsScriptConnection()" style="margin-top: 10px; background: #28a745;">🔧 Test Connection</button>
     </div>
 
     <script>
         // Configuration - UPDATE THESE VALUES
         const CONFIG = {
             // Google Sheets API Configuration
-            KIDS_SHEET_ID: 'YOUR_KIDS_SPREADSHEET_ID', // ID of spreadsheet with kids list
-            KIDS_SHEET_NAME: 'Sheet1', // Name of the sheet tab
-            KIDS_COLUMN: 'A', // Column containing kids names (e.g., 'A')
+            KIDS_SHEET_ID: '1edGoIYzKpmNFU0Iyr-PmOTI6NHPwFgE0p3eHlKlbLhM', // ID of spreadsheet with kids list
+            KIDS_SHEET_NAME: 'Spieler Liste', // Name of the sheet tab (GID: 0)
+            KIDS_FIRST_NAME_COLUMN: 'A', // Column containing first names
+            KIDS_LAST_NAME_COLUMN: 'B', // Column containing last names
             
-            ATTENDANCE_SHEET_ID: 'YOUR_ATTENDANCE_SPREADSHEET_ID', // ID of spreadsheet to save attendance
-            ATTENDANCE_SHEET_NAME: 'Sheet1', // Name of the sheet tab
+            ATTENDANCE_SHEET_ID: '1edGoIYzKpmNFU0Iyr-PmOTI6NHPwFgE0p3eHlKlbLhM', // ID of spreadsheet to save attendance
+            ATTENDANCE_SHEET_NAME: 'Absenzen', // Name of the sheet tab (GID: 21507466)
             
             // Google API Key (for read-only access to kids list)
-            API_KEY: 'YOUR_GOOGLE_API_KEY',
+            API_KEY: 'AIzaSyBK3Hp7DbYslhN2m1v5Zc8Pf-4S1HlhHbk',
             
             // Password for basic authentication
-            PASSWORD: 'your-secure-password-here',
+            PASSWORD: 'Wurzel123',
             
-            // Google Apps Script URL (for writing data - more secure)
-            APPS_SCRIPT_URL: 'YOUR_GOOGLE_APPS_SCRIPT_URL'
+            // Netlify Function URL (for writing data)
+            // For local testing: use '/.netlify/functions/save-attendance'
+            // For production: use 'https://your-site.netlify.app/.netlify/functions/save-attendance'
+            APPS_SCRIPT_URL: '/.netlify/functions/save-attendance'
         };
 
         let kidsList = [];
+        let kidsData = []; // Store full data with team and role
         let attendance = {};
 
         // Check authentication on page load
@@ -387,59 +449,184 @@
         // Load kids list from Google Sheets
         async function loadKidsList() {
             try {
-                const url = `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.KIDS_SHEET_ID}/values/${CONFIG.KIDS_SHEET_NAME}!${CONFIG.KIDS_COLUMN}:${CONFIG.KIDS_COLUMN}?key=${CONFIG.API_KEY}`;
+                // Read columns A (first name), B (last name), C (team), D (role)
+                const range = `${CONFIG.KIDS_SHEET_NAME}!A:D`;
+                const url = `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.KIDS_SHEET_ID}/values/${range}?key=${CONFIG.API_KEY}`;
                 
                 const response = await fetch(url);
                 const data = await response.json();
                 
                 if (data.error) {
-                    throw new Error(data.error.message);
+                    // Provide helpful error messages for common issues
+                    if (data.error.code === 403 || data.error.status === 'PERMISSION_DENIED') {
+                        throw new Error('Permission denied. The spreadsheet must be shared. See console for details.');
+                    } else if (data.error.code === 404) {
+                        throw new Error('Spreadsheet not found. Check the Sheet ID and Sheet Name.');
+                    } else {
+                        throw new Error(data.error.message);
+                    }
                 }
                 
-                // Extract kids names (skip header if present)
-                kidsList = data.values
-                    .flat()
-                    .filter(name => name && name.trim() !== '')
-                    .map(name => name.trim());
-                
-                // Remove header if it's not a name
-                if (kidsList.length > 0 && kidsList[0].toLowerCase() === 'name') {
-                    kidsList.shift();
+                if (!data.values) {
+                    throw new Error('No data returned from spreadsheet');
                 }
+                
+                // Process rows: merge first/last name, get team and role
+                kidsData = data.values
+                    .map((row, index) => {
+                        const firstName = row[0] ? row[0].trim() : '';
+                        const lastName = row[1] ? row[1].trim() : '';
+                        const team = row[2] ? row[2].trim() : '';
+                        const role = row[3] ? row[3].trim().toLowerCase() : '';
+                        
+                        // Skip empty rows
+                        if (!firstName && !lastName) {
+                            return null;
+                        }
+                        
+                        // Skip header row
+                        if (index === 0) {
+                            const firstItem = firstName.toLowerCase();
+                            if (firstItem.includes('name') || firstItem.includes('first') || firstItem.includes('last') || 
+                                firstItem.includes('vorname') || firstItem.includes('nachname') || firstItem.includes('team') || 
+                                firstItem.includes('role') || firstItem.includes('coach') || firstItem.includes('player')) {
+                                return null;
+                            }
+                        }
+                        
+                        // Merge first and last name with a space
+                        const fullName = (firstName + ' ' + lastName).trim();
+                        
+                        return {
+                            name: fullName,
+                            team: team || 'Unknown',
+                            role: role || 'player',
+                            firstName: firstName,
+                            lastName: lastName
+                        };
+                    })
+                    .filter(item => item !== null && item.name !== ''); // Remove null/empty entries
+                
+                // Create flat list for backward compatibility
+                kidsList = kidsData.map(item => item.name);
                 
                 renderKidsList();
                 updateStats();
             } catch (error) {
+                let errorHtml = '<div class="error">';
+                errorHtml += '<strong>Failed to load kids list:</strong><br>';
+                errorHtml += error.message + '<br><br>';
+                
+                if (error.message.includes('Permission denied') || error.message.includes('permission')) {
+                    errorHtml += '<strong>🔒 How to fix:</strong><br>';
+                    errorHtml += '1. Open your Google Spreadsheet<br>';
+                    errorHtml += '2. Click the <strong>"Share"</strong> button (top right)<br>';
+                    errorHtml += '3. Change to <strong>"Anyone with the link"</strong> → <strong>"Viewer"</strong><br>';
+                    errorHtml += '4. Click <strong>"Done"</strong><br>';
+                    errorHtml += '5. Refresh this page<br><br>';
+                    errorHtml += '<a href="https://docs.google.com/spreadsheets/d/' + CONFIG.KIDS_SHEET_ID + '/edit" target="_blank" style="color: #667eea; text-decoration: underline;">Open Spreadsheet →</a>';
+                } else {
+                    errorHtml += 'Please check your configuration.';
+                }
+                
+                errorHtml += '</div>';
+                
                 showError('Failed to load kids list: ' + error.message);
-                document.getElementById('kidsList').innerHTML = 
-                    '<div class="error">Error loading kids list. Please check your configuration.</div>';
+                document.getElementById('kidsList').innerHTML = errorHtml;
             }
         }
 
         function renderKidsList() {
             const container = document.getElementById('kidsList');
             
-            if (kidsList.length === 0) {
+            if (kidsData.length === 0) {
                 container.innerHTML = '<div class="loading">No kids found in the spreadsheet.</div>';
                 return;
             }
             
-            container.innerHTML = kidsList.map((kid, index) => {
-                const isPresent = attendance[kid] !== false; // Default to present
-                return `
-                    <div class="kid-item">
-                        <span class="kid-name">${kid}</span>
-                        <label class="toggle-switch">
-                            <input type="checkbox" ${isPresent ? 'checked' : ''} 
-                                   onchange="toggleAttendance('${kid}', this.checked)" />
-                            <span class="slider"></span>
-                        </label>
-                        <span class="status-badge ${isPresent ? 'status-present' : 'status-absent'}">
-                            ${isPresent ? 'Present' : 'Absent'}
+            // Group by team and role
+            const grouped = {};
+            kidsData.forEach(kid => {
+                const team = kid.team || 'Unknown';
+                const role = kid.role.toLowerCase();
+                const isCoach = role.includes('coach') || role.includes('trainer');
+                
+                // Coaches go in "Coach" group, players go in their team group with "Junior-" prefix
+                let groupKey;
+                if (isCoach) {
+                    groupKey = 'Coach';
+                } else {
+                    // Add "Junior-" prefix to team names (unless it already starts with "Junior-")
+                    if (team.toLowerCase().startsWith('junior-')) {
+                        groupKey = team;
+                    } else {
+                        groupKey = 'Junior-' + team;
+                    }
+                }
+                
+                if (!grouped[groupKey]) {
+                    grouped[groupKey] = [];
+                }
+                grouped[groupKey].push(kid);
+            });
+            
+            // Sort groups: Coaches first, then teams alphabetically
+            const sortedGroups = Object.keys(grouped).sort((a, b) => {
+                if (a === 'Coach') return -1;
+                if (b === 'Coach') return 1;
+                return a.localeCompare(b, undefined, { sensitivity: 'base' });
+            });
+            
+            // Build HTML with section headers
+            let html = '';
+            sortedGroups.forEach((groupKey, groupIndex) => {
+                const kids = grouped[groupKey];
+                
+                // Sort kids within group alphabetically
+                kids.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
+                
+                const groupId = `group-${groupIndex}`;
+                const groupStatsId = `group-stats-${groupIndex}`;
+                
+                // Add collapsible section header with per-group stats
+                html += `
+                    <div class="group-header" onclick="toggleGroup('${groupId}')">
+                        <span>
+                            <span class="group-header-icon">▼</span>
+                            ${groupKey}
+                        </span>
+                        <span id="${groupStatsId}" style="font-size: 14px; font-weight: normal; color: #666;">
+                            ${kids.length} ${kids.length === 1 ? 'person' : 'people'} (0 present, 0 absent)
                         </span>
                     </div>
+                    <div class="group-content" id="${groupId}">
                 `;
-            }).join('');
+                
+                // Add kids in this group
+                kids.forEach(kid => {
+                    const isPresent = attendance[kid.name] !== false; // Default to present
+                    // Escape quotes in kid's name for use in HTML attribute
+                    const escapedKid = kid.name.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                    
+                    html += `
+                        <div class="kid-item">
+                            <span class="kid-name">${kid.name}</span>
+                            <label class="toggle-switch">
+                                <input type="checkbox" ${isPresent ? 'checked' : ''} 
+                                       onchange="toggleAttendance('${escapedKid}', this.checked)" />
+                                <span class="slider"></span>
+                            </label>
+                            <span class="status-badge ${isPresent ? 'status-present' : 'status-absent'}">
+                                ${isPresent ? 'Present' : 'Absent'}
+                            </span>
+                        </div>
+                    `;
+                });
+                
+                html += `</div>`;
+            });
+            
+            container.innerHTML = html;
             
             // Initialize attendance object
             kidsList.forEach(kid => {
@@ -447,6 +634,22 @@
                     attendance[kid] = true;
                 }
             });
+            
+            // Update stats after rendering
+            updateStats();
+        }
+
+        function toggleGroup(groupId) {
+            const groupContent = document.getElementById(groupId);
+            const groupHeader = groupContent.previousElementSibling;
+            
+            if (groupContent.classList.contains('collapsed')) {
+                groupContent.classList.remove('collapsed');
+                groupHeader.classList.remove('collapsed');
+            } else {
+                groupContent.classList.add('collapsed');
+                groupHeader.classList.add('collapsed');
+            }
         }
 
         function toggleAttendance(kid, isPresent) {
@@ -466,13 +669,84 @@
         }
 
         function updateStats() {
-            const total = kidsList.length;
-            const present = Object.values(attendance).filter(v => v === true).length;
-            const absent = total - present;
+            // Separate coaches and players
+            const coaches = kidsData.filter(kid => {
+                const role = kid.role.toLowerCase();
+                return role.includes('coach') || role.includes('trainer');
+            });
+            const players = kidsData.filter(kid => {
+                const role = kid.role.toLowerCase();
+                return !role.includes('coach') && !role.includes('trainer');
+            });
             
-            document.getElementById('totalKids').textContent = total;
-            document.getElementById('presentKids').textContent = present;
-            document.getElementById('absentKids').textContent = absent;
+            // Count attendance for coaches
+            const coachNames = coaches.map(c => c.name);
+            const presentCoaches = coachNames.filter(name => attendance[name] === true).length;
+            const totalCoaches = coaches.length;
+            
+            // Count attendance for players
+            const playerNames = players.map(p => p.name);
+            const presentPlayers = playerNames.filter(name => attendance[name] === true).length;
+            const totalPlayers = players.length;
+            
+            // Total absent (coaches + players)
+            const absentCoaches = totalCoaches - presentCoaches;
+            const absentPlayers = totalPlayers - presentPlayers;
+            const totalAbsent = absentCoaches + absentPlayers;
+            
+            // Update main stats in "X/Y" format
+            document.getElementById('coachesStats').textContent = `Coaches ${totalCoaches}/${presentCoaches}`;
+            document.getElementById('playersStats').textContent = `Players ${totalPlayers}/${presentPlayers}`;
+            document.getElementById('absentKids').textContent = totalAbsent;
+            
+            // Update per-group stats
+            updateGroupStats();
+        }
+        
+        function updateGroupStats() {
+            // Group by team and role (same logic as renderKidsList)
+            const grouped = {};
+            kidsData.forEach(kid => {
+                const team = kid.team || 'Unknown';
+                const role = kid.role.toLowerCase();
+                const isCoach = role.includes('coach') || role.includes('trainer');
+                
+                let groupKey;
+                if (isCoach) {
+                    groupKey = 'Coach';
+                } else {
+                    if (team.toLowerCase().startsWith('junior-')) {
+                        groupKey = team;
+                    } else {
+                        groupKey = 'Junior-' + team;
+                    }
+                }
+                
+                if (!grouped[groupKey]) {
+                    grouped[groupKey] = [];
+                }
+                grouped[groupKey].push(kid);
+            });
+            
+            // Sort groups: Coaches first, then teams alphabetically
+            const sortedGroups = Object.keys(grouped).sort((a, b) => {
+                if (a === 'Coach') return -1;
+                if (b === 'Coach') return 1;
+                return a.localeCompare(b, undefined, { sensitivity: 'base' });
+            });
+            
+            // Update each group's stats
+            sortedGroups.forEach((groupKey, groupIndex) => {
+                const kids = grouped[groupKey];
+                const groupStatsId = `group-stats-${groupIndex}`;
+                const statsElement = document.getElementById(groupStatsId);
+                
+                if (statsElement) {
+                    const present = kids.filter(kid => attendance[kid.name] === true).length;
+                    const absent = kids.length - present;
+                    statsElement.textContent = `${kids.length} ${kids.length === 1 ? 'person' : 'people'} (${present} present, ${absent} absent)`;
+                }
+            });
         }
 
         async function saveAttendance() {
@@ -511,34 +785,160 @@
                 } else {
                     // Fallback: show data that needs to be saved manually
                     showError('Google Apps Script URL not configured. Please set up the Apps Script (see README).');
-                    console.log('Data to save:', data);
                 }
                 
                 saveBtn.disabled = false;
                 saveBtn.textContent = '💾 Save Attendance';
             } catch (error) {
                 showError('Failed to save attendance: ' + error.message);
+                const saveBtn = document.getElementById('saveBtn');
                 saveBtn.disabled = false;
                 saveBtn.textContent = '💾 Save Attendance';
             }
         }
 
-        async function saveViaAppsScript(data) {
-            const response = await fetch(CONFIG.APPS_SCRIPT_URL, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(data)
-            });
-            
-            const result = await response.json();
-            
-            if (result.success) {
-                showSuccess(`Attendance saved successfully! ${data.presentKids.length} kids present, ${data.absentKids} absent.`);
-            } else {
-                throw new Error(result.error || 'Failed to save');
+        // Test function to debug connection
+        async function testAppsScriptConnection() {
+            try {
+                // Send test data in the expected format
+                const testData = {
+                    date: new Date().toISOString().split('T')[0],
+                    activityType: 'Test',
+                    presentKids: ['Test Kid'],
+                    totalKids: 1,
+                    absentKids: 0
+                };
+                
+                console.log('Testing connection to:', CONFIG.APPS_SCRIPT_URL);
+                console.log('Test data:', testData);
+                
+                // Use no-cors mode - we don't need to read the response
+                // User will verify in the spreadsheet
+                await fetch(CONFIG.APPS_SCRIPT_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: new URLSearchParams({ data: JSON.stringify(testData) }).toString()
+                });
+                
+                // Wait a moment for the request to complete
+                await new Promise(resolve => setTimeout(resolve, 1500));
+                
+                showSuccess('Test data sent! Please check your "Absenzen" spreadsheet to see if a test row was added. If not, check Apps Script execution logs at https://script.google.com');
+                
+            } catch (error) {
+                console.error('Connection test error:', error);
+                // Try form submission as fallback
+                try {
+                    await saveViaFormSubmission(testData);
+                    showSuccess('Test data sent via form submission! Check your spreadsheet.');
+                } catch (formError) {
+                    showError('Connection test failed: ' + error.message + '. Check the browser console and Apps Script execution logs.');
+                }
             }
+        }
+
+        async function saveViaAppsScript(data) {
+            // Send data to Netlify Function (or Google Apps Script if still using it)
+            try {
+                console.log('Saving attendance data...');
+                console.log('URL:', CONFIG.APPS_SCRIPT_URL);
+                console.log('Data:', data);
+                
+                // Determine the full URL
+                let url = CONFIG.APPS_SCRIPT_URL;
+                if (url.startsWith('/')) {
+                    // Relative URL - use current origin
+                    url = window.location.origin + url;
+                }
+                
+                const response = await fetch(url, {
+                    method: 'POST',
+                    mode: 'cors',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    let errorData;
+                    try {
+                        errorData = JSON.parse(errorText);
+                    } catch (e) {
+                        errorData = { error: errorText };
+                    }
+                    throw new Error(errorData.error || errorData.message || `Server returned ${response.status}`);
+                }
+                
+                const result = await response.json();
+                console.log('Save result:', result);
+                
+                if (result.success) {
+                    showSuccess(`Attendance saved successfully! ${data.presentKids.length} kids present, ${data.absentKids} absent.`);
+                } else {
+                    throw new Error(result.error || result.message || 'Failed to save');
+                }
+                
+            } catch (error) {
+                console.error('Save error:', error);
+                throw new Error('Failed to save attendance: ' + error.message);
+            }
+        }
+        
+        async function saveViaFormSubmission(data) {
+            return new Promise((resolve, reject) => {
+                // Create a hidden form
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = CONFIG.APPS_SCRIPT_URL;
+                form.target = 'hiddenFrame';
+                form.style.display = 'none';
+                
+                // Create hidden iframe for form submission
+                let iframe = document.getElementById('hiddenFrame');
+                if (!iframe) {
+                    iframe = document.createElement('iframe');
+                    iframe.id = 'hiddenFrame';
+                    iframe.name = 'hiddenFrame';
+                    iframe.style.display = 'none';
+                    document.body.appendChild(iframe);
+                }
+                
+                // Add data as hidden input
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'data';
+                input.value = JSON.stringify(data);
+                form.appendChild(input);
+                
+                // Handle iframe load (success)
+                iframe.onload = () => {
+                    document.body.removeChild(form);
+                    resolve();
+                };
+                
+                // Handle errors
+                iframe.onerror = () => {
+                    document.body.removeChild(form);
+                    reject(new Error('Form submission failed'));
+                };
+                
+                // Submit form
+                document.body.appendChild(form);
+                form.submit();
+                
+                // Give it a moment, then resolve (since we can't reliably detect success)
+                setTimeout(() => {
+                    if (document.body.contains(form)) {
+                        document.body.removeChild(form);
+                    }
+                    resolve();
+                }, 2000);
+            });
         }
 
         function showError(message) {

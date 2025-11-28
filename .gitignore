@@ -1,6 +1,13 @@
 # Security files - DO NOT COMMIT
 .htpasswd
 config.js
+.env
+.env.local
+.env.*.local
+
+# Dependencies
+node_modules/
+package-lock.json
 
 # OS files
 .DS_Store
@@ -13,3 +20,5 @@ Thumbs.db
 *.swo
 *~
 
+# Local Netlify folder
+.netlify

@@ -2,6 +2,10 @@
 [build]
   # No build process needed - this is a static site
   publish = "."
+  
+# Functions directory
+[functions]
+  directory = "netlify/functions"
 
 # Redirect rules (optional - for SPA routing if needed)
 [[redirects]]
