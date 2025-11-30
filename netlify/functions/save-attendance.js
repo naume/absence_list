@@ -82,11 +82,30 @@ exports.handler = async (event, context) => {
       absent_kids: data.absentKids || 0
     };
 
-    // Insert into Supabase
-    const { data: insertedData, error } = await supabase
-      .from('attendance')
-      .insert([attendanceRecord])
-      .select();
+    let result;
+    let error;
+
+    // If record ID is provided, update existing record; otherwise insert new one
+    if (data.recordId) {
+      // Update existing record
+      const { data: updatedData, error: updateError } = await supabase
+        .from('attendance')
+        .update(attendanceRecord)
+        .eq('id', data.recordId)
+        .select();
+      
+      result = updatedData;
+      error = updateError;
+    } else {
+      // Insert new record
+      const { data: insertedData, error: insertError } = await supabase
+        .from('attendance')
+        .insert([attendanceRecord])
+        .select();
+      
+      result = insertedData;
+      error = insertError;
+    }
 
     if (error) {
       throw new Error('Database error: ' + error.message);
@@ -100,8 +119,8 @@ exports.handler = async (event, context) => {
       },
       body: JSON.stringify({
         success: true,
-        message: 'Attendance saved successfully',
-        id: insertedData[0]?.id
+        message: data.recordId ? 'Attendance updated successfully' : 'Attendance saved successfully',
+        id: result[0]?.id
       })
     };
 

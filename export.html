@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Export Attendance - Soccer Team</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 30px;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        input[type="date"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        input[type="date"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .success {
+            background: #d4edda;
+            color: #155724;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+
+        .back-link {
+            display: inline-block;
+            margin-bottom: 20px;
+            color: #667eea;
+            text-decoration: none;
+            padding: 12px 24px;
+            background: #f0f4ff;
+            border-radius: 8px;
+            transition: all 0.2s;
+            font-weight: 600;
+            border: 2px solid #667eea;
+        }
+
+        .back-link:hover {
+            background: #e0e8ff;
+            border-color: #764ba2;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="index.html" class="back-link">← Back to Attendance</a>
+        
+        <h1>📊 Export Attendance Data</h1>
+
+        <div id="errorMessage" class="error" style="display: none;"></div>
+        <div id="successMessage" class="success" style="display: none;"></div>
+
+        <div class="form-group">
+            <label for="fromDate">From Date:</label>
+            <input type="date" id="fromDate" required />
+        </div>
+
+        <div class="form-group">
+            <label for="toDate">To Date:</label>
+            <input type="date" id="toDate" required />
+        </div>
+
+        <button id="exportBtn" class="btn" onclick="exportToExcel()">📥 Export to Excel</button>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script>
+        // Load kids list from Google Sheets (same as main page)
+        let kidsData = [];
+
+        window.addEventListener('DOMContentLoaded', async () => {
+            await loadKidsList();
+            
+            // Set default dates (last 30 days to today)
+            const today = new Date();
+            const thirtyDaysAgo = new Date(today);
+            thirtyDaysAgo.setDate(today.getDate() - 30);
+            
+            document.getElementById('toDate').value = today.toISOString().split('T')[0];
+            document.getElementById('fromDate').value = thirtyDaysAgo.toISOString().split('T')[0];
+        });
+
+        async function loadKidsList() {
+            try {
+                const CONFIG = {
+                    KIDS_SHEET_ID: '1edGoIYzKpmNFU0Iyr-PmOTI6NHPwFgE0p3eHlKlbLhM',
+                    KIDS_SHEET_NAME: 'Spieler Liste',
+                    API_KEY: 'AIzaSyBK3Hp7DbYslhN2m1v5Zc8Pf-4S1HlhHbk'
+                };
+
+                // Read columns A-E (first name, last name, team, role, J+S number)
+                const range = `${CONFIG.KIDS_SHEET_NAME}!A:E`;
+                const url = `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.KIDS_SHEET_ID}/values/${range}?key=${CONFIG.API_KEY}`;
+                
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                if (data.error) {
+                    throw new Error(data.error.message);
+                }
+                
+                if (!data.values || data.values.length < 2) {
+                    throw new Error('No data returned from spreadsheet');
+                }
+                
+                // Parse data (skip header row)
+                kidsData = data.values.slice(1)
+                    .map(row => {
+                        const firstName = (row[0] || '').trim();
+                        const lastName = (row[1] || '').trim();
+                        const team = (row[2] || '').trim();
+                        const role = (row[3] || '').trim();
+                        const jsNumber = (row[4] || '').trim(); // J+S number in column E
+                        
+                        if (!firstName && !lastName) return null;
+                        
+                        return {
+                            firstName: firstName,
+                            lastName: lastName,
+                            fullName: `${lastName} ${firstName}`.trim(),
+                            team: team,
+                            role: role,
+                            jsNumber: jsNumber
+                        };
+                    })
+                    .filter(item => item !== null);
+                
+                // Sort alphabetically by last name
+                kidsData.sort((a, b) => {
+                    const nameA = a.lastName || a.firstName;
+                    const nameB = b.lastName || b.firstName;
+                    return nameA.localeCompare(nameB, undefined, { sensitivity: 'base' });
+                });
+            } catch (error) {
+                showError('Failed to load kids list: ' + error.message);
+            }
+        }
+
+        async function exportToExcel() {
+            const fromDate = document.getElementById('fromDate').value;
+            const toDate = document.getElementById('toDate').value;
+            
+            if (!fromDate || !toDate) {
+                showError('Please select both from and to dates.');
+                return;
+            }
+            
+            if (new Date(fromDate) > new Date(toDate)) {
+                showError('From date must be before or equal to to date.');
+                return;
+            }
+            
+            try {
+                const exportBtn = document.getElementById('exportBtn');
+                exportBtn.disabled = true;
+                exportBtn.textContent = '⏳ Loading data...';
+                
+                // Fetch attendance data for date range
+                const response = await fetch(`/.netlify/functions/get-attendance-range?fromDate=${fromDate}&toDate=${toDate}`);
+                const result = await response.json();
+                
+                if (!result.success) {
+                    throw new Error(result.error || 'Failed to fetch attendance data');
+                }
+                
+                if (!result.data || result.data.length === 0) {
+                    showError('No attendance data found for the selected date range.');
+                    exportBtn.disabled = false;
+                    exportBtn.textContent = '📥 Export to Excel';
+                    return;
+                }
+                
+                // Generate Excel file
+                generateExcelFile(result.data, fromDate, toDate);
+                
+                showSuccess('Excel file generated successfully!');
+                exportBtn.disabled = false;
+                exportBtn.textContent = '📥 Export to Excel';
+            } catch (error) {
+                showError('Failed to export: ' + error.message);
+                const exportBtn = document.getElementById('exportBtn');
+                exportBtn.disabled = false;
+                exportBtn.textContent = '📥 Export to Excel';
+            }
+        }
+
+        function generateExcelFile(attendanceData, fromDate, toDate) {
+            // Get all unique dates in range and sort them
+            const allDates = [...new Set(attendanceData.map(record => record.date))].sort();
+            
+            // Create a map of date -> attendance record
+            const dateMap = {};
+            attendanceData.forEach(record => {
+                dateMap[record.date] = record;
+            });
+            
+            // Prepare data array
+            const excelData = [];
+            
+            // Row 1: Dates header
+            const row1 = ['Datum', '', ''];
+            allDates.forEach(date => {
+                const dateObj = new Date(date);
+                const day = String(dateObj.getDate()).padStart(2, '0');
+                const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+                const year = dateObj.getFullYear();
+                row1.push(`${day}.${month}.${year}`);
+            });
+            excelData.push(row1);
+            
+            // Row 2: Activity type (T or W)
+            const row2 = ['Training (T) oder Wettkampf (W)', '', ''];
+            allDates.forEach(date => {
+                const record = dateMap[date];
+                if (record) {
+                    const activityType = record.activity_type || '';
+                    if (activityType.toLowerCase().includes('turnier') || activityType.toLowerCase().includes('wettkampf')) {
+                        row2.push('W');
+                    } else {
+                        row2.push('T');
+                    }
+                } else {
+                    row2.push('');
+                }
+            });
+            excelData.push(row2);
+            
+            // Row 3: Column headers
+            const row3 = ['Name', 'Vorname', 'Pers.Nr.'];
+            allDates.forEach(() => row3.push(''));
+            excelData.push(row3);
+            
+            // Data rows: Each kid
+            kidsData.forEach(kid => {
+                const row = [
+                    kid.lastName || '',
+                    kid.firstName || '',
+                    kid.jsNumber || ''
+                ];
+                
+                // Add x for dates when kid was present
+                allDates.forEach(date => {
+                    const record = dateMap[date];
+                    if (record && record.present_kids) {
+                        const presentKids = typeof record.present_kids === 'string' 
+                            ? record.present_kids.split(',').map(name => name.trim())
+                            : record.present_kids;
+                        
+                        // Check if kid's full name is in present list
+                        // Try multiple name format combinations
+                        const fullNameLastFirst = `${kid.lastName} ${kid.firstName}`.trim();
+                        const fullNameFirstLast = `${kid.firstName} ${kid.lastName}`.trim();
+                        const lastNameOnly = kid.lastName;
+                        const firstNameOnly = kid.firstName;
+                        
+                        const isPresent = presentKids.some(name => {
+                            const normalizedName = name.trim();
+                            return normalizedName === fullNameLastFirst ||
+                                   normalizedName === fullNameFirstLast ||
+                                   normalizedName === lastNameOnly ||
+                                   normalizedName === firstNameOnly ||
+                                   normalizedName.toLowerCase() === fullNameLastFirst.toLowerCase() ||
+                                   normalizedName.toLowerCase() === fullNameFirstLast.toLowerCase();
+                        });
+                        
+                        row.push(isPresent ? 'x' : '');
+                    } else {
+                        row.push('');
+                    }
+                });
+                
+                excelData.push(row);
+            });
+            
+            // Create workbook
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.aoa_to_sheet(excelData);
+            
+            // Set column widths
+            const colWidths = [{ wch: 15 }, { wch: 15 }, { wch: 18 }]; // Name, Vorname, and Pers.Nr. columns
+            allDates.forEach(() => colWidths.push({ wch: 12 })); // Date columns
+            ws['!cols'] = colWidths;
+            
+            // Add worksheet to workbook
+            XLSX.utils.book_append_sheet(wb, ws, 'Attendance');
+            
+            // Generate filename
+            const filename = `Attendance_${fromDate}_to_${toDate}.xlsx`;
+            
+            // Download file
+            XLSX.writeFile(wb, filename);
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+            document.getElementById('successMessage').style.display = 'none';
+            
+            setTimeout(() => {
+                errorDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, 100);
+            
+            setTimeout(() => {
+                errorDiv.style.display = 'none';
+            }, 5000);
+        }
+
+        function showSuccess(message) {
+            const successDiv = document.getElementById('successMessage');
+            successDiv.textContent = message;
+            successDiv.style.display = 'block';
+            document.getElementById('errorMessage').style.display = 'none';
+            
+            setTimeout(() => {
+                successDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, 100);
+            
+            setTimeout(() => {
+                successDiv.style.display = 'none';
+            }, 5000);
+        }
+    </script>
+</body>
+</html>
+
