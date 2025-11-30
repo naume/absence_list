@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Soccer Team Attendance Tracker</title>
+    <title>Soccer Team Anwesenheit Tracker</title>
     <style>
         * {
             margin: 0;
@@ -325,7 +325,7 @@
     <!-- Authentication Screen -->
     <div id="authScreen" class="auth-container" style="display: none;">
         <h1>🔒 Access Required</h1>
-        <p style="margin-bottom: 20px; color: #666;">Please enter the password to access the attendance tracker.</p>
+        <p style="margin-bottom: 20px; color: #666;">Bitte geben Sie das Passwort ein, um auf den Anwesenheitstracker zuzugreifen.</p>
         <input type="password" id="passwordInput" placeholder="Enter password" />
         <button onclick="checkPassword()">Login</button>
         <div id="authError" style="color: red; margin-top: 10px; display: none;"></div>
@@ -333,20 +333,20 @@
 
     <!-- Main Application -->
     <div id="appScreen" class="container" style="display: none;">
-        <h1>⚽ Soccer Team Attendance</h1>
+        <h1>⚽ Soccer Team Anwesenheit</h1>
 
         <div id="errorMessage" class="error" style="display: none;"></div>
         <div id="successMessage" class="success" style="display: none;"></div>
 
         <div class="form-group">
-            <label for="datePicker">Date:</label>
+            <label for="datePicker">Datum:</label>
             <input type="date" id="datePicker" required />
         </div>
 
         <div class="form-group">
-            <label for="activityType">Activity Type:</label>
+            <label for="activityType">Typ:</label>
             <select id="activityType" required>
-                <option value="">Select...</option>
+                <option value="">Auswählen...</option>
                 <option value="Training">Training</option>
                 <option value="Turnier">Turnier</option>
             </select>
@@ -354,24 +354,24 @@
 
         <div class="stats">
             <div class="stat-item">
-                <div class="stat-number" id="coachesStats">Coaches 0/0</div>
+                <div class="stat-number" id="coachesStats">Trainer 0/0</div>
             </div>
             <div class="stat-item">
-                <div class="stat-number" id="playersStats">Players 0/0</div>
+                <div class="stat-number" id="playersStats">Spieler 0/0</div>
             </div>
         </div>
 
         <div class="form-group">
-            <label>Kids Attendance:</label>
+            <label>Kinder Anwesenheit:</label>
             <div id="kidsList" class="kids-list">
-                <div class="loading">Loading kids list...</div>
+                <div class="loading">Kinderliste wird geladen...</div>
             </div>
         </div>
 
-        <button id="saveBtn" class="btn" onclick="saveAttendance()">💾 Save Attendance</button>
+        <button id="saveBtn" class="btn" onclick="saveAttendance()">💾 Anwesenheit speichern</button>
         
         <div style="text-align: center; margin-top: 20px;">
-            <a href="export.html" style="color: #667eea; text-decoration: none; font-weight: 600;">📊 Export Attendance Data →</a>
+            <a href="export.html" style="color: #667eea; text-decoration: none; font-weight: 600;">📊 Anwesenheitsdaten exportieren →</a>
         </div>
     </div>
 
@@ -449,7 +449,7 @@
                 sessionStorage.setItem('authenticated', 'true');
                 showApp();
             } else {
-                errorDiv.textContent = 'Incorrect password. Please try again.';
+                errorDiv.textContent = 'Falsches Passwort. Bitte versuchen Sie es erneut.';
                 errorDiv.style.display = 'block';
                 document.getElementById('passwordInput').value = '';
             }
@@ -523,7 +523,7 @@
                 updateStats();
             } catch (error) {
                 let errorHtml = '<div class="error">';
-                errorHtml += '<strong>Failed to load kids list:</strong><br>';
+                errorHtml += '<strong>Fehler beim Laden der Kinderliste:</strong><br>';
                 errorHtml += error.message + '<br><br>';
                 
                 if (error.message.includes('Permission denied') || error.message.includes('permission')) {
@@ -540,7 +540,7 @@
                 
                 errorHtml += '</div>';
                 
-                showError('Failed to load kids list: ' + error.message);
+                showError('Fehler beim Laden der Kinderliste: ' + error.message);
                 document.getElementById('kidsList').innerHTML = errorHtml;
             }
         }
@@ -549,7 +549,7 @@
             const container = document.getElementById('kidsList');
             
             if (kidsData.length === 0) {
-                container.innerHTML = '<div class="loading">No kids found in the spreadsheet.</div>';
+                container.innerHTML = '<div class="loading">Keine Kinder in der Tabelle gefunden.</div>';
                 return;
             }
             
@@ -605,7 +605,7 @@
                             ${groupKey}
                         </div>
                         <div id="${groupStatsId}" style="font-size: 14px; font-weight: normal; color: #666;">
-                            ${kids.length} ${kids.length === 1 ? 'person' : 'people'} (0 absent, 0 present)
+                            ${kids.length} ${kids.length === 1 ? 'Person' : 'Personen'} (0 abwesend, 0 anwesend)
                         </div>
                     </div>
                     <div class="group-content" id="${groupId}">
@@ -685,8 +685,8 @@
             const totalPlayers = players.length;
             
             // Update main stats in "X/Y" format
-            document.getElementById('coachesStats').textContent = `Coaches ${totalCoaches}/${presentCoaches}`;
-            document.getElementById('playersStats').textContent = `Players ${totalPlayers}/${presentPlayers}`;
+            document.getElementById('coachesStats').textContent = `Trainer ${totalCoaches}/${presentCoaches}`;
+            document.getElementById('playersStats').textContent = `Spieler ${totalPlayers}/${presentPlayers}`;
             
             // Update per-group stats
             updateGroupStats();
@@ -733,7 +733,7 @@
                 if (statsElement) {
                     const present = kids.filter(kid => attendance[kid.name] === true).length;
                     const absent = kids.length - present;
-                    statsElement.textContent = `${kids.length} ${kids.length === 1 ? 'person' : 'people'} (${absent} absent, ${present} present)`;
+                    statsElement.textContent = `${kids.length} ${kids.length === 1 ? 'Person' : 'Personen'} (${absent} abwesend, ${present} anwesend)`;
                 }
             });
         }
@@ -816,12 +816,12 @@
             const activityType = document.getElementById('activityType').value;
             
             if (!date || !activityType) {
-                showError('Please select both date and activity type.');
+                showError('Bitte wählen Sie sowohl Datum als auch Typ aus.');
                 return;
             }
             
             if (kidsList.length === 0) {
-                showError('No kids loaded. Please refresh the page.');
+                showError('Keine Kinder geladen. Bitte Seite aktualisieren.');
                 return;
             }
             
@@ -840,7 +840,7 @@
             try {
                 const saveBtn = document.getElementById('saveBtn');
                 saveBtn.disabled = true;
-                saveBtn.textContent = '💾 Saving...';
+                saveBtn.textContent = '💾 Speichern...';
                 
                 // Use Google Apps Script to save data (more secure)
                 if (CONFIG.APPS_SCRIPT_URL && CONFIG.APPS_SCRIPT_URL !== 'YOUR_GOOGLE_APPS_SCRIPT_URL') {
@@ -851,12 +851,12 @@
                 }
                 
                 saveBtn.disabled = false;
-                saveBtn.textContent = '💾 Save Attendance';
+                saveBtn.textContent = '💾 Anwesenheit speichern';
             } catch (error) {
-                showError('Failed to save attendance: ' + error.message);
+                showError('Fehler beim Speichern der Anwesenheit: ' + error.message);
                 const saveBtn = document.getElementById('saveBtn');
                 saveBtn.disabled = false;
-                saveBtn.textContent = '💾 Save Attendance';
+                saveBtn.textContent = '💾 Anwesenheit speichern';
             }
         }
 
@@ -899,8 +899,8 @@
                     }
                     
                     const message = currentRecordId && data.recordId 
-                        ? `Attendance updated successfully! ${data.presentKids.length} kids present, ${data.absentKids} absent.`
-                        : `Attendance saved successfully! ${data.presentKids.length} kids present, ${data.absentKids} absent.`;
+                        ? `Anwesenheit erfolgreich aktualisiert! ${data.presentKids.length} Kinder anwesend, ${data.absentKids} abwesend.`
+                        : `Anwesenheit erfolgreich gespeichert! ${data.presentKids.length} Kinder anwesend, ${data.absentKids} abwesend.`;
                     showSuccess(message);
                 } else {
                     throw new Error(result.error || result.message || 'Failed to save');

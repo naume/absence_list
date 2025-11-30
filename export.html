@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Export Attendance - Soccer Team</title>
+    <title>Anwesenheit exportieren - Soccer Team</title>
     <style>
         * {
             margin: 0;
@@ -128,24 +128,24 @@
 </head>
 <body>
     <div class="container">
-        <a href="index.html" class="back-link">← Back to Attendance</a>
+        <a href="index.html" class="back-link">← Zurück zur Anwesenheit</a>
         
-        <h1>📊 Export Attendance Data</h1>
+        <h1>📊 Anwesenheitsdaten exportieren</h1>
 
         <div id="errorMessage" class="error" style="display: none;"></div>
         <div id="successMessage" class="success" style="display: none;"></div>
 
         <div class="form-group">
-            <label for="fromDate">From Date:</label>
+            <label for="fromDate">Von Datum:</label>
             <input type="date" id="fromDate" required />
         </div>
 
         <div class="form-group">
-            <label for="toDate">To Date:</label>
+            <label for="toDate">Bis Datum:</label>
             <input type="date" id="toDate" required />
         </div>
 
-        <button id="exportBtn" class="btn" onclick="exportToExcel()">📥 Export to Excel</button>
+        <button id="exportBtn" class="btn" onclick="exportToExcel()">📥 Nach Excel exportieren</button>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -217,7 +217,7 @@
                     return nameA.localeCompare(nameB, undefined, { sensitivity: 'base' });
                 });
             } catch (error) {
-                showError('Failed to load kids list: ' + error.message);
+                showError('Fehler beim Laden der Kinderliste: ' + error.message);
             }
         }
 
@@ -226,19 +226,19 @@
             const toDate = document.getElementById('toDate').value;
             
             if (!fromDate || !toDate) {
-                showError('Please select both from and to dates.');
+                showError('Bitte wählen Sie sowohl Start- als auch Enddatum aus.');
                 return;
             }
             
             if (new Date(fromDate) > new Date(toDate)) {
-                showError('From date must be before or equal to to date.');
+                showError('Das Startdatum muss vor oder gleich dem Enddatum sein.');
                 return;
             }
             
             try {
                 const exportBtn = document.getElementById('exportBtn');
                 exportBtn.disabled = true;
-                exportBtn.textContent = '⏳ Loading data...';
+                exportBtn.textContent = '⏳ Daten werden geladen...';
                 
                 // Fetch attendance data for date range
                 const response = await fetch(`/.netlify/functions/get-attendance-range?fromDate=${fromDate}&toDate=${toDate}`);
@@ -249,23 +249,23 @@
                 }
                 
                 if (!result.data || result.data.length === 0) {
-                    showError('No attendance data found for the selected date range.');
+                    showError('Keine Anwesenheitsdaten für den ausgewählten Zeitraum gefunden.');
                     exportBtn.disabled = false;
-                    exportBtn.textContent = '📥 Export to Excel';
+                    exportBtn.textContent = '📥 Nach Excel exportieren';
                     return;
                 }
                 
                 // Generate Excel file
                 generateExcelFile(result.data, fromDate, toDate);
                 
-                showSuccess('Excel file generated successfully!');
+                showSuccess('Excel-Datei erfolgreich erstellt!');
                 exportBtn.disabled = false;
                 exportBtn.textContent = '📥 Export to Excel';
             } catch (error) {
-                showError('Failed to export: ' + error.message);
+                showError('Fehler beim Exportieren: ' + error.message);
                 const exportBtn = document.getElementById('exportBtn');
                 exportBtn.disabled = false;
-                exportBtn.textContent = '📥 Export to Excel';
+                exportBtn.textContent = '📥 Nach Excel exportieren';
             }
         }
 
