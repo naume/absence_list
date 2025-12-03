@@ -11,7 +11,8 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@supabase/supabase-js": "^2.86.0"
+    "@supabase/supabase-js": "^2.86.0",
+    "sharp": "^0.34.5"
   },
   "devDependencies": {
     "netlify-cli": "^17.0.0"

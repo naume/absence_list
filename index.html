@@ -4,6 +4,28 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Soccer Team Anwesenheit Tracker</title>
+    
+    <!-- Favicon - Uses optimized icons if available, falls back to fcb-logo.png -->
+    <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png" />
+    <link rel="shortcut icon" href="favicon-32x32.png" />
+    <link rel="apple-touch-icon" sizes="192x192" href="icon-192.png" />
+    <link rel="apple-touch-icon" sizes="512x512" href="icon-512.png" />
+    <!-- Fallback to original logo if optimized icons don't exist -->
+    <link rel="icon" type="image/png" href="fcb-logo.png" />
+    <link rel="apple-touch-icon" href="fcb-logo.png" />
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="manifest.json" />
+    
+    <!-- Theme Color -->
+    <meta name="theme-color" content="#667eea" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Anwesenheit" />
+    
+    <!-- Splash Screen -->
+    <link rel="apple-touch-startup-image" href="icon-512.png" />
     <style>
         * {
             margin: 0;
@@ -131,15 +153,33 @@
             padding: 0;
         }
 
+        .kid-item-wrapper {
+            position: relative;
+            margin-bottom: 8px;
+            overflow: hidden;
+            border-radius: 6px;
+        }
+
         .kid-item {
             display: flex;
             align-items: center;
             justify-content: space-between;
             padding: 12px;
-            margin-bottom: 8px;
             background: #f8f9fa;
             border-radius: 6px;
-            transition: background 0.2s;
+            transition: transform 0.3s ease, background 0.2s;
+            position: relative;
+            z-index: 1;
+            cursor: grab;
+            user-select: none;
+        }
+
+        .kid-item:active {
+            cursor: grabbing;
+        }
+
+        .kid-item.swiped {
+            transform: translateX(-120px);
         }
 
         .kid-item:hover {
@@ -148,6 +188,57 @@
 
         .kid-item:last-child {
             margin-bottom: 0;
+        }
+
+        .kid-actions {
+            position: absolute;
+            right: 0;
+            top: 0;
+            bottom: 0;
+            display: flex;
+            width: 120px;
+            z-index: 0;
+        }
+
+        .kid-action-btn {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            font-size: 20px;
+            padding: 0;
+        }
+
+        .kid-action-btn.edit {
+            background: #28a745;
+        }
+
+        .kid-action-btn.delete {
+            background: #dc3545;
+        }
+
+        .add-person-btn {
+            background: #28a745;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            font-size: 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-left: 10px;
+            transition: transform 0.2s;
+        }
+
+        .add-person-btn:hover {
+            transform: scale(1.1);
         }
 
         .kid-name {
@@ -319,6 +410,115 @@
             font-weight: 600;
             cursor: pointer;
         }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-header h2 {
+            margin: 0;
+            color: #333;
+        }
+
+        .close-modal {
+            background: none;
+            border: none;
+            font-size: 28px;
+            cursor: pointer;
+            color: #999;
+            padding: 0;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .close-modal:hover {
+            color: #333;
+        }
+
+        .form-group-modal {
+            margin-bottom: 20px;
+        }
+
+        .form-group-modal label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 600;
+        }
+
+        .form-group-modal input,
+        .form-group-modal select {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 16px;
+        }
+
+        .form-group-modal input:focus,
+        .form-group-modal select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .modal-actions button {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
     </style>
 </head>
 <body>
@@ -370,8 +570,45 @@
 
         <button id="saveBtn" class="btn" onclick="saveAttendance()">💾 Anwesenheit speichern</button>
         
-        <div style="text-align: center; margin-top: 20px;">
+        <div style="text-align: center; margin-top: 20px; display: flex; flex-direction: column; gap: 10px;">
             <a href="export.html" style="color: #667eea; text-decoration: none; font-weight: 600;">📊 Anwesenheitsdaten exportieren →</a>
+        </div>
+    </div>
+
+    <!-- Person Modal -->
+    <div id="personModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle">Person hinzufügen</h2>
+                <button class="close-modal" onclick="closePersonModal()">&times;</button>
+            </div>
+            <form id="personForm" onsubmit="savePerson(event)">
+                <input type="hidden" id="personId" />
+                <div class="form-group-modal">
+                    <label for="personFirstName">Vorname *</label>
+                    <input type="text" id="personFirstName" required />
+                </div>
+                <div class="form-group-modal">
+                    <label for="personLastName">Nachname *</label>
+                    <input type="text" id="personLastName" required />
+                </div>
+                <div class="form-group-modal">
+                    <label for="personTeam">Gruppe/Team</label>
+                    <input type="text" id="personTeam" placeholder="z.B. E-a, Trainer" />
+                </div>
+                <div class="form-group-modal">
+                    <label for="personBirthDate">Geburtsdatum</label>
+                    <input type="date" id="personBirthDate" />
+                </div>
+                <div class="form-group-modal">
+                    <label for="personPassNumber">Passnummer</label>
+                    <input type="text" id="personPassNumber" placeholder="" />
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn-secondary" onclick="closePersonModal()">Abbrechen</button>
+                    <button type="submit" class="btn-primary">Speichern</button>
+                </div>
+            </form>
         </div>
     </div>
 
@@ -381,8 +618,7 @@
             // Google Sheets API Configuration
             KIDS_SHEET_ID: '1edGoIYzKpmNFU0Iyr-PmOTI6NHPwFgE0p3eHlKlbLhM', // ID of spreadsheet with kids list
             KIDS_SHEET_NAME: 'Spieler Liste', // Name of the sheet tab (GID: 0)
-            KIDS_FIRST_NAME_COLUMN: 'A', // Column containing first names
-            KIDS_LAST_NAME_COLUMN: 'B', // Column containing last names
+            // Column order: A=Gruppe, B=Nachname, C=Vorname, D=Geburtsdatum, E=Passnummer
             
             ATTENDANCE_SHEET_ID: '1edGoIYzKpmNFU0Iyr-PmOTI6NHPwFgE0p3eHlKlbLhM', // ID of spreadsheet to save attendance
             ATTENDANCE_SHEET_NAME: 'Absenzen', // Name of the sheet tab (GID: 21507466)
@@ -455,66 +691,41 @@
             }
         }
 
-        // Load kids list from Google Sheets
+        // Load kids list from Supabase database
         async function loadKidsList() {
             try {
-                // Read columns A (first name), B (last name), C (team), D (role)
-                const range = `${CONFIG.KIDS_SHEET_NAME}!A:D`;
-                const url = `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.KIDS_SHEET_ID}/values/${range}?key=${CONFIG.API_KEY}`;
+                const response = await fetch('/.netlify/functions/get-persons');
+                const result = await response.json();
                 
-                const response = await fetch(url);
-                const data = await response.json();
+                if (!result.success) {
+                    throw new Error(result.error || 'Failed to load persons');
+                }
                 
-                if (data.error) {
-                    // Provide helpful error messages for common issues
-                    if (data.error.code === 403 || data.error.status === 'PERMISSION_DENIED') {
-                        throw new Error('Permission denied. The spreadsheet must be shared. See console for details.');
-                    } else if (data.error.code === 404) {
-                        throw new Error('Spreadsheet not found. Check the Sheet ID and Sheet Name.');
-                    } else {
-                        throw new Error(data.error.message);
+                // Process persons from database
+                kidsData = (result.persons || []).map(person => {
+                    const firstName = person.first_name || '';
+                    const lastName = person.last_name || '';
+                    const fullName = (firstName + ' ' + lastName).trim();
+                    const team = person.team || 'Unknown';
+                    
+                    // Determine role: check if team name contains coach/trainer indicators
+                    let role = 'player';
+                    const teamLower = team.toLowerCase();
+                    if (teamLower.includes('coach') || teamLower.includes('trainer')) {
+                        role = 'coach';
                     }
-                }
-                
-                if (!data.values) {
-                    throw new Error('No data returned from spreadsheet');
-                }
-                
-                // Process rows: merge first/last name, get team and role
-                kidsData = data.values
-                    .map((row, index) => {
-                        const firstName = row[0] ? row[0].trim() : '';
-                        const lastName = row[1] ? row[1].trim() : '';
-                        const team = row[2] ? row[2].trim() : '';
-                        const role = row[3] ? row[3].trim().toLowerCase() : '';
-                        
-                        // Skip empty rows
-                        if (!firstName && !lastName) {
-                            return null;
-                        }
-                        
-                        // Skip header row
-                        if (index === 0) {
-                            const firstItem = firstName.toLowerCase();
-                            if (firstItem.includes('name') || firstItem.includes('first') || firstItem.includes('last') || 
-                                firstItem.includes('vorname') || firstItem.includes('nachname') || firstItem.includes('team') || 
-                                firstItem.includes('role') || firstItem.includes('coach') || firstItem.includes('player')) {
-                                return null;
-                            }
-                        }
-                        
-                        // Merge first and last name with a space
-                        const fullName = (firstName + ' ' + lastName).trim();
-                        
-                        return {
-                            name: fullName,
-                            team: team || 'Unknown',
-                            role: role || 'player',
-                            firstName: firstName,
-                            lastName: lastName
-                        };
-                    })
-                    .filter(item => item !== null && item.name !== ''); // Remove null/empty entries
+                    
+                    return {
+                        id: person.id,
+                        name: fullName,
+                        team: team,
+                        role: role,
+                        firstName: firstName,
+                        lastName: lastName,
+                        birthDate: person.birth_date || '',
+                        passNumber: person.pass_number || ''
+                    };
+                });
                 
                 // Create flat list for backward compatibility
                 kidsList = kidsData.map(item => item.name);
@@ -522,25 +733,80 @@
                 renderKidsList();
                 updateStats();
             } catch (error) {
-                let errorHtml = '<div class="error">';
-                errorHtml += '<strong>Fehler beim Laden der Kinderliste:</strong><br>';
-                errorHtml += error.message + '<br><br>';
-                
-                if (error.message.includes('Permission denied') || error.message.includes('permission')) {
-                    errorHtml += '<strong>🔒 How to fix:</strong><br>';
-                    errorHtml += '1. Open your Google Spreadsheet<br>';
-                    errorHtml += '2. Click the <strong>"Share"</strong> button (top right)<br>';
-                    errorHtml += '3. Change to <strong>"Anyone with the link"</strong> → <strong>"Viewer"</strong><br>';
-                    errorHtml += '4. Click <strong>"Done"</strong><br>';
-                    errorHtml += '5. Refresh this page<br><br>';
-                    errorHtml += '<a href="https://docs.google.com/spreadsheets/d/' + CONFIG.KIDS_SHEET_ID + '/edit" target="_blank" style="color: #667eea; text-decoration: underline;">Open Spreadsheet →</a>';
-                } else {
-                    errorHtml += 'Please check your configuration.';
+                // Fallback to Google Sheets if database fails (commented out for now)
+                /*
+                try {
+                    // Read columns A (Gruppe), B (Nachname), C (Vorname), D (Geburtsdatum), E (Passnummer)
+                    const range = `${CONFIG.KIDS_SHEET_NAME}!A:E`;
+                    const url = `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.KIDS_SHEET_ID}/values/${range}?key=${CONFIG.API_KEY}`;
+                    
+                    const response = await fetch(url);
+                    const data = await response.json();
+                    
+                    if (data.error) {
+                        throw new Error(data.error.message);
+                    }
+                    
+                    if (!data.values) {
+                        throw new Error('No data returned from spreadsheet');
+                    }
+                    
+                    // Process rows: new column order is A=Gruppe, B=Nachname, C=Vorname, D=Geburtsdatum, E=Passnummer
+                    kidsData = data.values
+                        .map((row, index) => {
+                            const team = row[0] ? row[0].trim() : '';
+                            const lastName = row[1] ? row[1].trim() : '';
+                            const firstName = row[2] ? row[2].trim() : '';
+                            const birthDate = row[3] ? row[3].trim() : '';
+                            const passNumber = row[4] ? row[4].trim() : '';
+                            
+                            if (!firstName && !lastName) return null;
+                            
+                            if (index === 0) {
+                                const firstItem = (team || '').toLowerCase();
+                                if (firstItem.includes('gruppe') || firstItem.includes('nachname') || firstItem.includes('vorname') || 
+                                    firstItem.includes('geburtsdatum') || firstItem.includes('passnummer') ||
+                                    firstItem.includes('name') || firstItem.includes('first') || firstItem.includes('last') || 
+                                    firstItem.includes('team') || firstItem.includes('role') || firstItem.includes('coach') || firstItem.includes('player')) {
+                                    return null;
+                                }
+                            }
+                            
+                            const fullName = (firstName + ' ' + lastName).trim();
+                            let role = 'player';
+                            const teamLower = team.toLowerCase();
+                            if (teamLower.includes('coach') || teamLower.includes('trainer')) {
+                                role = 'coach';
+                            }
+                            
+                            return {
+                                name: fullName,
+                                team: team || 'Unknown',
+                                role: role,
+                                firstName: firstName,
+                                lastName: lastName,
+                                birthDate: birthDate,
+                                passNumber: passNumber
+                            };
+                        })
+                        .filter(item => item !== null && item.name !== '');
+                    
+                    kidsList = kidsData.map(item => item.name);
+                    renderKidsList();
+                    updateStats();
+                    return;
+                } catch (sheetsError) {
+                    // Both failed
                 }
+                */
                 
+                let errorHtml = '<div class="error">';
+                errorHtml += '<strong>Fehler beim Laden der Personenliste:</strong><br>';
+                errorHtml += error.message + '<br><br>';
+                errorHtml += 'Bitte versuchen Sie es erneut oder kontaktieren Sie den Administrator.';
                 errorHtml += '</div>';
                 
-                showError('Fehler beim Laden der Kinderliste: ' + error.message);
+                showError('Fehler beim Laden der Personenliste: ' + error.message);
                 document.getElementById('kidsList').innerHTML = errorHtml;
             }
         }
@@ -563,13 +829,13 @@
                 // Coaches go in "Coach" group, players go in their team group with "Junior-" prefix
                 let groupKey;
                 if (isCoach) {
-                    groupKey = 'Coach';
+                    groupKey = 'Trainer';
                 } else {
                     // Add "Junior-" prefix to team names (unless it already starts with "Junior-")
                     if (team.toLowerCase().startsWith('junior-')) {
                         groupKey = team;
                     } else {
-                        groupKey = 'Junior-' + team;
+                        groupKey = 'Junior ' + team;
                     }
                 }
                 
@@ -597,12 +863,13 @@
                 const groupId = `group-${groupIndex}`;
                 const groupStatsId = `group-stats-${groupIndex}`;
                 
-                // Add collapsible section header with per-group stats
+                // Add collapsible section header with per-group stats and add button
                 html += `
                     <div class="group-header" onclick="toggleGroup('${groupId}')">
-                        <div>
+                        <div style="display: flex; align-items: center;">
                             <span class="group-header-icon">▼</span>
                             ${groupKey}
+                            <button class="add-person-btn" onclick="event.stopPropagation(); openPersonModal(null, '${groupKey.replace(/^Junior\s+/i, "")}')" title="Person hinzufügen">+</button>
                         </div>
                         <div id="${groupStatsId}" style="font-size: 14px; font-weight: normal; color: #666;">
                             ${kids.length} ${kids.length === 1 ? 'Person' : 'Personen'} (0 abwesend, 0 anwesend)
@@ -611,20 +878,33 @@
                     <div class="group-content" id="${groupId}">
                 `;
                 
-                // Add kids in this group
+                // Add kids in this group with swipe functionality
                 kids.forEach(kid => {
-                    const isPresent = attendance[kid.name] === true; // Default to absent (must check to mark present)
-                    // Escape quotes in kid's name for use in HTML attribute
+                    const isPresent = attendance[kid.name] === true;
                     const escapedKid = kid.name.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                    const kidId = kid.id || '';
                     
                     html += `
-                        <div class="kid-item">
-                            <span class="kid-name">${kid.name}</span>
-                            <label class="toggle-switch">
-                                <input type="checkbox" ${isPresent ? 'checked' : ''} 
-                                       onchange="toggleAttendance('${escapedKid}', this.checked)" />
-                                <span class="slider"></span>
-                            </label>
+                        <div class="kid-item-wrapper" data-kid-id="${kidId}">
+                            <div class="kid-item" 
+                                 ontouchstart="handleTouchStart(event, this)" 
+                                 ontouchmove="handleTouchMove(event, this)" 
+                                 ontouchend="handleTouchEnd(event, this)"
+                                 onmousedown="handleMouseDown(event, this)"
+                                 onmousemove="handleMouseMove(event, this)"
+                                 onmouseup="handleMouseUp(event, this)"
+                                 onmouseleave="handleMouseUp(event, this)">
+                                <span class="kid-name">${kid.name}</span>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" ${isPresent ? 'checked' : ''} 
+                                           onchange="toggleAttendance('${escapedKid}', this.checked)" />
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                            <div class="kid-actions">
+                                <button class="kid-action-btn edit" onclick="openPersonModal(${kidId}, null)" title="Bearbeiten">✏️</button>
+                                <button class="kid-action-btn delete" onclick="deletePerson(${kidId}, '${escapedKid}')" title="Löschen">🗑️</button>
+                            </div>
                         </div>
                     `;
                 });
@@ -702,12 +982,12 @@
                 
                 let groupKey;
                 if (isCoach) {
-                    groupKey = 'Coach';
+                    groupKey = 'Trainer';
                 } else {
                     if (team.toLowerCase().startsWith('junior-')) {
                         groupKey = team;
                     } else {
-                        groupKey = 'Junior-' + team;
+                        groupKey = 'Junior ' + team;
                     }
                 }
                 
@@ -717,10 +997,10 @@
                 grouped[groupKey].push(kid);
             });
             
-            // Sort groups: Coaches first, then teams alphabetically
+            // Sort groups: Trainers first, then teams alphabetically
             const sortedGroups = Object.keys(grouped).sort((a, b) => {
-                if (a === 'Coach') return -1;
-                if (b === 'Coach') return 1;
+                if (a === 'Trainer') return -1;
+                if (b === 'Trainer') return 1;
                 return a.localeCompare(b, undefined, { sensitivity: 'base' });
             });
             
@@ -825,15 +1105,26 @@
                 return;
             }
             
-            // Get list of present kids (not absent)
-            const presentKids = Object.keys(attendance).filter(kid => attendance[kid] === true);
+            // Get list of present kids (not absent) with their full data
+            const presentKidsNames = Object.keys(attendance).filter(kid => attendance[kid] === true);
+            
+            // Get full person data for present kids
+            const presentKidsData = kidsData.filter(kid => presentKidsNames.includes(kid.name));
+            
+            // Step 1: Ensure persons exist and get their IDs
+            const personIds = await ensurePersonsExist(presentKidsData);
+            
+            if (personIds.length === 0 && presentKidsData.length > 0) {
+                showError('Fehler beim Abrufen der Personen-IDs. Bitte versuchen Sie es erneut.');
+                return;
+            }
             
             const data = {
                 date: date,
                 activityType: activityType,
-                presentKids: presentKids,
+                personIds: personIds, // Only send person IDs
                 totalKids: kidsList.length,
-                absentKids: kidsList.length - presentKids.length,
+                absentKids: kidsList.length - presentKidsNames.length,
                 recordId: currentRecordId // Include record ID if updating existing record
             };
             
@@ -994,6 +1285,312 @@
             setTimeout(() => {
                 successDiv.style.display = 'none';
             }, 5000);
+        }
+
+        // Helper function to ensure persons exist and get their IDs
+        async function ensurePersonsExist(personsData) {
+            if (!personsData || personsData.length === 0) {
+                return [];
+            }
+            
+            try {
+                const response = await fetch('/.netlify/functions/get-person-ids', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        persons: personsData.map(kid => ({
+                            passNumber: kid.passNumber || '',
+                            firstName: kid.firstName,
+                            lastName: kid.lastName,
+                            team: kid.team,
+                            birthDate: kid.birthDate || null
+                        }))
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    return result.personIds || [];
+                } else {
+                    console.error('Error getting person IDs:', result.error);
+                    return [];
+                }
+            } catch (error) {
+                console.error('Error calling get-person-ids:', error);
+                return [];
+            }
+        }
+
+        // Swipe gesture handling (touch and mouse)
+        let touchStartX = 0;
+        let touchStartY = 0;
+        let currentSwipeElement = null;
+        let isDragging = false;
+
+        function handleTouchStart(e, element) {
+            touchStartX = e.touches[0].clientX;
+            touchStartY = e.touches[0].clientY;
+            currentSwipeElement = element;
+            isDragging = true;
+        }
+
+        function handleTouchMove(e, element) {
+            if (!currentSwipeElement || currentSwipeElement !== element || !isDragging) return;
+            
+            const touchX = e.touches[0].clientX;
+            const touchY = e.touches[0].clientY;
+            const diffX = touchStartX - touchX;
+            const diffY = Math.abs(touchStartY - touchY);
+            
+            // Only swipe if horizontal movement is greater than vertical
+            if (Math.abs(diffX) > diffY && Math.abs(diffX) > 10) {
+                e.preventDefault();
+                if (diffX > 0) {
+                    // Swipe left - show actions
+                    element.classList.add('swiped');
+                } else {
+                    // Swipe right - hide actions
+                    element.classList.remove('swiped');
+                }
+            }
+        }
+
+        function handleTouchEnd(e, element) {
+            if (currentSwipeElement === element) {
+                currentSwipeElement = null;
+                isDragging = false;
+            }
+        }
+
+        // Mouse drag handlers for desktop
+        function handleMouseDown(e, element) {
+            // Don't start drag if clicking on checkbox or button
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON' || e.target.closest('label')) {
+                return;
+            }
+            touchStartX = e.clientX;
+            touchStartY = e.clientY;
+            currentSwipeElement = element;
+            isDragging = true;
+            element.style.cursor = 'grabbing';
+        }
+
+        function handleMouseMove(e, element) {
+            if (!currentSwipeElement || currentSwipeElement !== element || !isDragging) return;
+            
+            const mouseX = e.clientX;
+            const mouseY = e.clientY;
+            const diffX = touchStartX - mouseX;
+            const diffY = Math.abs(touchStartY - mouseY);
+            
+            // Only swipe if horizontal movement is greater than vertical
+            if (Math.abs(diffX) > diffY && Math.abs(diffX) > 10) {
+                e.preventDefault();
+                if (diffX > 0) {
+                    // Drag left - show actions
+                    element.classList.add('swiped');
+                } else {
+                    // Drag right - hide actions
+                    element.classList.remove('swiped');
+                }
+            }
+        }
+
+        function handleMouseUp(e, element) {
+            if (currentSwipeElement === element) {
+                currentSwipeElement = null;
+                isDragging = false;
+                element.style.cursor = '';
+            }
+        }
+
+        // Click outside to close swipe
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.kid-item-wrapper')) {
+                document.querySelectorAll('.kid-item.swiped').forEach(item => {
+                    item.classList.remove('swiped');
+                });
+            }
+        });
+
+        // Close modal when clicking outside
+        document.getElementById('personModal').addEventListener('click', (e) => {
+            if (e.target.id === 'personModal') {
+                closePersonModal();
+            }
+        });
+
+        // Person CRUD functions
+        function openPersonModal(personId, defaultTeam) {
+            const modal = document.getElementById('personModal');
+            const form = document.getElementById('personForm');
+            const title = document.getElementById('modalTitle');
+            
+            if (personId) {
+                // Edit mode
+                const person = kidsData.find(k => k.id === personId);
+                if (person) {
+                    title.textContent = 'Person bearbeiten';
+                    document.getElementById('personId').value = person.id;
+                    document.getElementById('personFirstName').value = person.firstName;
+                    document.getElementById('personLastName').value = person.lastName;
+                    document.getElementById('personTeam').value = person.team;
+                    document.getElementById('personBirthDate').value = person.birthDate || '';
+                    document.getElementById('personPassNumber').value = person.passNumber || '';
+                }
+            } else {
+                // Create mode
+                title.textContent = 'Person hinzufügen';
+                form.reset();
+                document.getElementById('personId').value = '';
+                if (defaultTeam) {
+                    document.getElementById('personTeam').value = defaultTeam;
+                }
+            }
+            
+            modal.classList.add('active');
+        }
+
+        function closePersonModal() {
+            const modal = document.getElementById('personModal');
+            modal.classList.remove('active');
+            document.getElementById('personForm').reset();
+        }
+
+        async function savePerson(event) {
+            event.preventDefault();
+            
+            const personId = document.getElementById('personId').value;
+            const firstName = document.getElementById('personFirstName').value.trim();
+            const lastName = document.getElementById('personLastName').value.trim();
+            const team = document.getElementById('personTeam').value.trim();
+            const birthDate = document.getElementById('personBirthDate').value;
+            const passNumber = document.getElementById('personPassNumber').value.trim();
+            
+            if (!firstName || !lastName) {
+                showError('Vorname und Nachname sind erforderlich.');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/.netlify/functions/save-person', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        id: personId || null,
+                        firstName: firstName,
+                        lastName: lastName,
+                        team: team || null,
+                        birthDate: birthDate || null,
+                        passNumber: passNumber || null
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    closePersonModal();
+                    showSuccess(personId ? 'Person erfolgreich aktualisiert!' : 'Person erfolgreich hinzugefügt!');
+                    await loadKidsList(); // Reload the list
+                } else {
+                    throw new Error(result.error || 'Fehler beim Speichern');
+                }
+            } catch (error) {
+                showError('Fehler beim Speichern der Person: ' + error.message);
+            }
+        }
+
+        async function deletePerson(personId, personName) {
+            if (!confirm(`Möchten Sie "${personName}" wirklich löschen?\n\nDiese Aktion kann nicht rückgängig gemacht werden.`)) {
+                return;
+            }
+            
+            try {
+                const response = await fetch('/.netlify/functions/delete-person', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ id: personId })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showSuccess('Person erfolgreich gelöscht!');
+                    await loadKidsList(); // Reload the list
+                } else {
+                    throw new Error(result.error || 'Fehler beim Löschen');
+                }
+            } catch (error) {
+                showError('Fehler beim Löschen der Person: ' + error.message);
+            }
+        }
+
+        async function migratePersons() {
+            const migrateBtn = document.getElementById('migrateBtn');
+            const originalText = migrateBtn.textContent;
+            
+            if (!confirm('Möchten Sie alle Personen aus dem Google Sheet in die Datenbank importieren?\n\nDies wird:\n- Neue Personen hinzufügen\n- Bestehende Personen aktualisieren\n\nFortfahren?')) {
+                return;
+            }
+            
+            try {
+                migrateBtn.disabled = true;
+                migrateBtn.textContent = '📥 Importiere...';
+                
+                // Use the same configuration as the app
+                const requestData = {
+                    googleApiKey: CONFIG.API_KEY,
+                    sheetId: CONFIG.KIDS_SHEET_ID,
+                    sheetName: CONFIG.KIDS_SHEET_NAME
+                };
+                
+                const response = await fetch('/.netlify/functions/migrate-persons', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(requestData)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    let message = `✅ Migration erfolgreich!\n\n`;
+                    message += `Importiert: ${result.imported} neue Personen\n`;
+                    message += `Aktualisiert: ${result.updated} bestehende Personen\n`;
+                    message += `Gesamt: ${result.total} Personen verarbeitet`;
+                    
+                    if (result.errorCount > 0) {
+                        message += `\n\nFehler: ${result.errorCount}`;
+                        if (result.errors && result.errors.length > 0) {
+                            message += '\n\nFehlerdetails:\n';
+                            result.errors.slice(0, 5).forEach(err => {
+                                message += `• ${err.person}: ${err.error}\n`;
+                            });
+                            if (result.errors.length > 5) {
+                                message += `... und ${result.errors.length - 5} weitere`;
+                            }
+                        }
+                    }
+                    
+                    alert(message);
+                    showSuccess(`Migration abgeschlossen: ${result.imported} importiert, ${result.updated} aktualisiert`);
+                } else {
+                    throw new Error(result.error || 'Migration fehlgeschlagen');
+                }
+            } catch (error) {
+                showError('Fehler beim Importieren der Personen: ' + error.message);
+            } finally {
+                migrateBtn.disabled = false;
+                migrateBtn.textContent = originalText;
+            }
         }
     </script>
 </body>

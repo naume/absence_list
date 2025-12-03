@@ -61,10 +61,23 @@ exports.handler = async (event, context) => {
       };
     }
 
-    // Fetch attendance record for the given date
+    // Fetch attendance record for the given date with related persons
     const { data, error } = await supabase
       .from('attendance')
-      .select('*')
+      .select(`
+        *,
+        attendance_persons (
+          person_id,
+          persons (
+            id,
+            pass_number,
+            first_name,
+            last_name,
+            team,
+            birth_date
+          )
+        )
+      `)
       .eq('date', date)
       .order('created_at', { ascending: false })
       .limit(1);
@@ -88,11 +101,29 @@ exports.handler = async (event, context) => {
       };
     }
 
-    // Parse the present_kids string back to array
     const record = data[0];
-    const presentKids = record.present_kids 
-      ? record.present_kids.split(',').map(name => name.trim()).filter(name => name)
-      : [];
+    
+    // Extract present kids names from the joined persons data
+    let presentKids = [];
+    if (record.attendance_persons && Array.isArray(record.attendance_persons)) {
+      presentKids = record.attendance_persons
+        .map(ap => {
+          if (ap.persons) {
+            const person = ap.persons;
+            return `${person.first_name} ${person.last_name}`.trim();
+          }
+          return null;
+        })
+        .filter(name => name !== null);
+    }
+    
+    // Fallback: if no attendance_persons links found, try to parse old format (present_kids string)
+    if (presentKids.length === 0 && record.present_kids) {
+      presentKids = record.present_kids
+        .split(',')
+        .map(name => name.trim())
+        .filter(name => name);
+    }
 
     return {
       statusCode: 200,
@@ -107,8 +138,8 @@ exports.handler = async (event, context) => {
           date: record.date,
           activityType: record.activity_type,
           presentKids: presentKids,
-          totalKids: record.total_kids,
-          absentKids: record.absent_kids
+          totalKids: record.total_persons || record.total_kids || 0,
+          absentKids: record.absent || record.absent_kids || 0
         }
       })
     };
