@@ -149,6 +149,7 @@
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
     <script>
         // Load kids list from Google Sheets (same as main page)
         let kidsData = [];
@@ -167,45 +168,31 @@
 
         async function loadKidsList() {
             try {
-                const CONFIG = {
-                    KIDS_SHEET_ID: '1edGoIYzKpmNFU0Iyr-PmOTI6NHPwFgE0p3eHlKlbLhM',
-                    KIDS_SHEET_NAME: 'Spieler Liste',
-                    API_KEY: 'AIzaSyBK3Hp7DbYslhN2m1v5Zc8Pf-4S1HlhHbk'
-                };
-
-                // Read columns A-E (first name, last name, team, role, J+S number)
-                const range = `${CONFIG.KIDS_SHEET_NAME}!A:E`;
-                const url = `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.KIDS_SHEET_ID}/values/${range}?key=${CONFIG.API_KEY}`;
+                // Load persons from Supabase database
+                const response = await fetch('/.netlify/functions/get-persons');
+                const result = await response.json();
                 
-                const response = await fetch(url);
-                const data = await response.json();
-                
-                if (data.error) {
-                    throw new Error(data.error.message);
+                if (!result.success) {
+                    throw new Error(result.error || 'Failed to load persons');
                 }
                 
-                if (!data.values || data.values.length < 2) {
-                    throw new Error('No data returned from spreadsheet');
-                }
-                
-                // Parse data (skip header row)
-                kidsData = data.values.slice(1)
-                    .map(row => {
-                        const firstName = (row[0] || '').trim();
-                        const lastName = (row[1] || '').trim();
-                        const team = (row[2] || '').trim();
-                        const role = (row[3] || '').trim();
-                        const jsNumber = (row[4] || '').trim(); // J+S number in column E
+                // Process persons from database
+                kidsData = (result.persons || [])
+                    .map(person => {
+                        const firstName = person.first_name || '';
+                        const lastName = person.last_name || '';
+                        const fullName = `${firstName} ${lastName}`.trim();
                         
                         if (!firstName && !lastName) return null;
                         
                         return {
+                            id: person.id,
                             firstName: firstName,
                             lastName: lastName,
-                            fullName: `${lastName} ${firstName}`.trim(),
-                            team: team,
-                            role: role,
-                            jsNumber: jsNumber
+                            fullName: fullName,
+                            team: person.team || '',
+                            passNumber: person.pass_number || '',
+                            birthDate: person.birth_date || ''
                         };
                     })
                     .filter(item => item !== null);
@@ -217,7 +204,7 @@
                     return nameA.localeCompare(nameB, undefined, { sensitivity: 'base' });
                 });
             } catch (error) {
-                showError('Fehler beim Laden der Kinderliste: ' + error.message);
+                showError('Fehler beim Laden der Personenliste: ' + error.message);
             }
         }
 
@@ -256,7 +243,7 @@
                 }
                 
                 // Generate Excel file
-                generateExcelFile(result.data, fromDate, toDate);
+                await generateExcelFile(result.data, fromDate, toDate);
                 
                 showSuccess('Excel-Datei erfolgreich erstellt!');
                 exportBtn.disabled = false;
@@ -269,7 +256,7 @@
             }
         }
 
-        function generateExcelFile(attendanceData, fromDate, toDate) {
+        async function generateExcelFile(attendanceData, fromDate, toDate) {
             // Get all unique dates in range and sort them
             const allDates = [...new Set(attendanceData.map(record => record.date))].sort();
             
@@ -283,7 +270,7 @@
             const excelData = [];
             
             // Row 1: Dates header
-            const row1 = ['Datum', '', ''];
+            const row1 = ['Datum', '', '', '']; // Nachname, Vorname, Passnummer, Geburtsdatum
             allDates.forEach(date => {
                 const dateObj = new Date(date);
                 const day = String(dateObj.getDate()).padStart(2, '0');
@@ -294,7 +281,7 @@
             excelData.push(row1);
             
             // Row 2: Activity type (T or W)
-            const row2 = ['Training (T) oder Wettkampf (W)', '', ''];
+            const row2 = ['Training (T) oder Wettkampf (W)', '', '', '']; // Nachname, Vorname, Passnummer, Geburtsdatum
             allDates.forEach(date => {
                 const record = dateMap[date];
                 if (record) {
@@ -311,42 +298,59 @@
             excelData.push(row2);
             
             // Row 3: Column headers
-            const row3 = ['Name', 'Vorname', 'Pers.Nr.'];
+            const row3 = ['Nachname', 'Vorname', 'Passnummer', 'Geburtsdatum'];
             allDates.forEach(() => row3.push(''));
             excelData.push(row3);
             
             // Data rows: Each kid
             kidsData.forEach(kid => {
+                // Format birth date
+                let birthDateFormatted = '';
+                if (kid.birthDate) {
+                    try {
+                        const date = new Date(kid.birthDate);
+                        if (!isNaN(date.getTime())) {
+                            const day = String(date.getDate()).padStart(2, '0');
+                            const month = String(date.getMonth() + 1).padStart(2, '0');
+                            const year = date.getFullYear();
+                            birthDateFormatted = `${day}.${month}.${year}`;
+                        }
+                    } catch (e) {
+                        birthDateFormatted = kid.birthDate;
+                    }
+                }
+                
                 const row = [
                     kid.lastName || '',
                     kid.firstName || '',
-                    kid.jsNumber || ''
+                    kid.passNumber || '',
+                    birthDateFormatted
                 ];
                 
                 // Add x for dates when kid was present
                 allDates.forEach(date => {
                     const record = dateMap[date];
-                    if (record && record.present_kids) {
-                        const presentKids = typeof record.present_kids === 'string' 
-                            ? record.present_kids.split(',').map(name => name.trim())
-                            : record.present_kids;
+                    if (record) {
+                        let isPresent = false;
                         
-                        // Check if kid's full name is in present list
-                        // Try multiple name format combinations
-                        const fullNameLastFirst = `${kid.lastName} ${kid.firstName}`.trim();
-                        const fullNameFirstLast = `${kid.firstName} ${kid.lastName}`.trim();
-                        const lastNameOnly = kid.lastName;
-                        const firstNameOnly = kid.firstName;
+                        // First try to match by person ID (new format)
+                        if (record.present_person_ids && kid.id) {
+                            isPresent = record.present_person_ids.includes(kid.id);
+                        }
                         
-                        const isPresent = presentKids.some(name => {
-                            const normalizedName = name.trim();
-                            return normalizedName === fullNameLastFirst ||
-                                   normalizedName === fullNameFirstLast ||
-                                   normalizedName === lastNameOnly ||
-                                   normalizedName === firstNameOnly ||
-                                   normalizedName.toLowerCase() === fullNameLastFirst.toLowerCase() ||
-                                   normalizedName.toLowerCase() === fullNameFirstLast.toLowerCase();
-                        });
+                        // Fallback: match by name (old format or if ID match failed)
+                        if (!isPresent && record.present_kids && Array.isArray(record.present_kids)) {
+                            const fullNameFirstLast = `${kid.firstName} ${kid.lastName}`.trim();
+                            const fullNameLastFirst = `${kid.lastName} ${kid.firstName}`.trim();
+                            
+                            isPresent = record.present_kids.some(name => {
+                                const normalizedName = name.trim();
+                                return normalizedName === fullNameFirstLast ||
+                                       normalizedName === fullNameLastFirst ||
+                                       normalizedName.toLowerCase() === fullNameFirstLast.toLowerCase() ||
+                                       normalizedName.toLowerCase() === fullNameLastFirst.toLowerCase();
+                            });
+                        }
                         
                         row.push(isPresent ? 'x' : '');
                     } else {
@@ -357,23 +361,72 @@
                 excelData.push(row);
             });
             
-            // Create workbook
-            const wb = XLSX.utils.book_new();
-            const ws = XLSX.utils.aoa_to_sheet(excelData);
-            
-            // Set column widths
-            const colWidths = [{ wch: 15 }, { wch: 15 }, { wch: 18 }]; // Name, Vorname, and Pers.Nr. columns
-            allDates.forEach(() => colWidths.push({ wch: 12 })); // Date columns
-            ws['!cols'] = colWidths;
-            
-            // Add worksheet to workbook
-            XLSX.utils.book_append_sheet(wb, ws, 'Attendance');
-            
-            // Generate filename
-            const filename = `Attendance_${fromDate}_to_${toDate}.xlsx`;
-            
-            // Download file
-            XLSX.writeFile(wb, filename);
+            // Try using ExcelJS if available (better styling support), otherwise fall back to XLSX
+            if (typeof ExcelJS !== 'undefined') {
+                // Use ExcelJS for better styling support
+                const workbook = new ExcelJS.Workbook();
+                const worksheet = workbook.addWorksheet('Attendance');
+                
+                // Add all rows
+                excelData.forEach((row, rowIndex) => {
+                    const excelRow = worksheet.addRow(row);
+                    
+                    // Make first 3 rows bold
+                    if (rowIndex < 3) {
+                        excelRow.font = { bold: true };
+                        excelRow.eachCell((cell) => {
+                            cell.font = { bold: true };
+                        });
+                    }
+                });
+                
+                // Set column widths
+                worksheet.getColumn(1).width = 15; // Nachname
+                worksheet.getColumn(2).width = 15; // Vorname
+                worksheet.getColumn(3).width = 18; // Passnummer
+                worksheet.getColumn(4).width = 15; // Geburtsdatum
+                for (let i = 5; i <= 4 + allDates.length; i++) {
+                    worksheet.getColumn(i).width = 12; // Date columns
+                }
+                
+                // Generate filename
+                const filename = `Attendance_${fromDate}_to_${toDate}.xlsx`;
+                
+                // Download file
+                const buffer = await workbook.xlsx.writeBuffer();
+                const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+                const url = window.URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = filename;
+                link.click();
+                window.URL.revokeObjectURL(url);
+            } else {
+                // Fallback to XLSX (limited styling)
+                const wb = XLSX.utils.book_new();
+                const ws = XLSX.utils.aoa_to_sheet(excelData);
+                
+                // Set column widths
+                const colWidths = [{ wch: 15 }, { wch: 15 }, { wch: 18 }, { wch: 15 }];
+                allDates.forEach(() => colWidths.push({ wch: 12 }));
+                ws['!cols'] = colWidths;
+                
+                // Try to apply bold (may not work in free version)
+                for (let row = 0; row < 3 && row < excelData.length; row++) {
+                    for (let col = 0; col < excelData[row].length; col++) {
+                        const cellAddress = XLSX.utils.encode_cell({ r: row, c: col });
+                        if (ws[cellAddress]) {
+                            ws[cellAddress].s = {
+                                font: { bold: true }
+                            };
+                        }
+                    }
+                }
+                
+                XLSX.utils.book_append_sheet(wb, ws, 'Attendance');
+                const filename = `Attendance_${fromDate}_to_${toDate}.xlsx`;
+                XLSX.writeFile(wb, filename);
+            }
         }
 
         function showError(message) {

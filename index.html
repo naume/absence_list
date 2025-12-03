@@ -1189,9 +1189,10 @@
                         currentRecordId = result.id;
                     }
                     
+                    const presentCount = data.personIds ? data.personIds.length : (data.presentKids ? data.presentKids.length : 0);
                     const message = currentRecordId && data.recordId 
-                        ? `Anwesenheit erfolgreich aktualisiert! ${data.presentKids.length} Kinder anwesend, ${data.absentKids} abwesend.`
-                        : `Anwesenheit erfolgreich gespeichert! ${data.presentKids.length} Kinder anwesend, ${data.absentKids} abwesend.`;
+                        ? `Anwesenheit erfolgreich aktualisiert! ${presentCount} Kinder anwesend, ${data.absentKids} abwesend.`
+                        : `Anwesenheit erfolgreich gespeichert! ${presentCount} Kinder anwesend, ${data.absentKids} abwesend.`;
                     showSuccess(message);
                 } else {
                     throw new Error(result.error || result.message || 'Failed to save');

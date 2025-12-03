@@ -62,10 +62,21 @@ exports.handler = async (event, context) => {
       };
     }
 
-    // Fetch attendance records for the date range
+    // Fetch attendance records for the date range with related persons
     const { data, error } = await supabase
       .from('attendance')
-      .select('*')
+      .select(`
+        *,
+        attendance_persons (
+          person_id,
+          persons (
+            id,
+            first_name,
+            last_name,
+            pass_number
+          )
+        )
+      `)
       .gte('date', fromDate)
       .lte('date', toDate)
       .order('date', { ascending: true });
@@ -74,17 +85,43 @@ exports.handler = async (event, context) => {
       throw new Error('Database error: ' + error.message);
     }
 
-    // Parse the present_kids string back to array for each record
-    const processedData = (data || []).map(record => ({
-      id: record.id,
-      date: record.date,
-      activity_type: record.activity_type,
-      present_kids: record.present_kids 
-        ? record.present_kids.split(',').map(name => name.trim()).filter(name => name)
-        : [],
-      total_kids: record.total_kids,
-      absent_kids: record.absent_kids
-    }));
+    // Process data: extract person names and IDs
+    const processedData = (data || []).map(record => {
+      // Get present person names from attendance_persons links
+      let presentKids = [];
+      let presentPersonIds = [];
+      
+      if (record.attendance_persons && Array.isArray(record.attendance_persons)) {
+        presentKids = record.attendance_persons
+          .map(ap => {
+            if (ap.persons) {
+              const person = ap.persons;
+              presentPersonIds.push(person.id);
+              return `${person.first_name} ${person.last_name}`.trim();
+            }
+            return null;
+          })
+          .filter(name => name !== null);
+      }
+      
+      // Fallback: parse old format (present_kids string) for backward compatibility
+      if (presentKids.length === 0 && record.present_kids) {
+        presentKids = record.present_kids
+          .split(',')
+          .map(name => name.trim())
+          .filter(name => name);
+      }
+      
+      return {
+        id: record.id,
+        date: record.date,
+        activity_type: record.activity_type,
+        present_kids: presentKids,
+        present_person_ids: presentPersonIds,
+        total_kids: record.total_persons || record.total_kids || 0,
+        absent_kids: record.absent || record.absent_kids || 0
+      };
+    });
 
     return {
       statusCode: 200,
