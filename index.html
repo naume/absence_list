@@ -64,6 +64,61 @@
             margin-bottom: 25px;
         }
 
+        .form-search {
+            margin-bottom: 25px;
+        }
+
+        .form-search label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .search-input-wrapper {
+            position: relative;
+            width: 100%;
+        }
+
+        .form-search input[type="text"] {
+            width: 100%;
+            padding: 12px 40px 12px 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        .form-search input[type="text"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .clear-search-btn {
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: transparent;
+            border: none;
+            font-size: 24px;
+            color: #999;
+            cursor: pointer;
+            padding: 4px 8px;
+            line-height: 1;
+            transition: color 0.2s;
+            z-index: 1;
+        }
+
+        .clear-search-btn:hover {
+            color: #667eea;
+        }
+
+        .clear-search-btn:active {
+            color: #764ba2;
+        }
+
         label {
             display: block;
             margin-bottom: 8px;
@@ -561,10 +616,18 @@
             </div>
         </div>
 
+        <div class="form-search">
+            <label>Suchen:</label>
+            <div class="search-input-wrapper">
+                <input type="text" id="searchInput" placeholder="Suche nach Name, Gruppe, etc." />
+                <button type="button" id="clearSearch" class="clear-search-btn" style="display: none;" title="Suche löschen">×</button>
+            </div>
+        </div>
+
         <div class="form-group">
-            <label>Kinder Anwesenheit:</label>
+            <label>Anwesenheit:</label>
             <div id="kidsList" class="kids-list">
-                <div class="loading">Kinderliste wird geladen...</div>
+                <div class="loading">Liste wird geladen...</div>
             </div>
         </div>
 
@@ -639,6 +702,7 @@
         let kidsData = []; // Store full data with team and role
         let attendance = {};
         let currentRecordId = null; // Track the current record ID for updates
+        let searchFilter = ''; // Current search filter text
 
         // Check authentication on page load
         window.addEventListener('DOMContentLoaded', () => {
@@ -658,6 +722,36 @@
             datePicker.addEventListener('change', async () => {
                 await loadAttendanceForDate(datePicker.value);
             });
+            
+            // Add event listener for search input
+            const searchInput = document.getElementById('searchInput');
+            const clearSearchBtn = document.getElementById('clearSearch');
+            
+            if (searchInput) {
+                // Function to update search and toggle clear button
+                const updateSearch = () => {
+                    searchFilter = searchInput.value.trim().toLowerCase();
+                    renderKidsList();
+                    
+                    // Show/hide clear button based on input value
+                    if (clearSearchBtn) {
+                        clearSearchBtn.style.display = searchInput.value.trim() ? 'block' : 'none';
+                    }
+                };
+                
+                searchInput.addEventListener('input', updateSearch);
+                
+                // Clear button click handler
+                if (clearSearchBtn) {
+                    clearSearchBtn.addEventListener('click', () => {
+                        searchInput.value = '';
+                        searchFilter = '';
+                        renderKidsList();
+                        clearSearchBtn.style.display = 'none';
+                        searchInput.focus();
+                    });
+                }
+            }
         });
 
         function showAuth() {
@@ -815,13 +909,45 @@
             const container = document.getElementById('kidsList');
             
             if (kidsData.length === 0) {
-                container.innerHTML = '<div class="loading">Keine Kinder in der Tabelle gefunden.</div>';
+                container.innerHTML = '<div class="loading">Keine Einträge in der Tabelle gefunden.</div>';
                 return;
+            }
+            
+            // Filter kids based on search term
+            let filteredKids = kidsData;
+            if (searchFilter) {
+                filteredKids = kidsData.filter(kid => {
+                    const name = (kid.name || '').toLowerCase();
+                    const team = (kid.team || '').toLowerCase();
+                    const firstName = (kid.firstName || '').toLowerCase();
+                    const lastName = (kid.lastName || '').toLowerCase();
+                    
+                    // Determine group name for search
+                    const role = kid.role.toLowerCase();
+                    const isCoach = role.includes('coach') || role.includes('trainer');
+                    let groupKey = '';
+                    if (isCoach) {
+                        groupKey = 'trainer';
+                    } else {
+                        if (team.startsWith('junior-')) {
+                            groupKey = team;
+                        } else {
+                            groupKey = 'junior ' + team;
+                        }
+                    }
+                    
+                    // Search across name, first name, last name, team, and group
+                    return name.includes(searchFilter) ||
+                           firstName.includes(searchFilter) ||
+                           lastName.includes(searchFilter) ||
+                           team.includes(searchFilter) ||
+                           groupKey.includes(searchFilter);
+                });
             }
             
             // Group by team and role
             const grouped = {};
-            kidsData.forEach(kid => {
+            filteredKids.forEach(kid => {
                 const team = kid.team || 'Unknown';
                 const role = kid.role.toLowerCase();
                 const isCoach = role.includes('coach') || role.includes('trainer');
@@ -845,12 +971,19 @@
                 grouped[groupKey].push(kid);
             });
             
-            // Sort groups: Coaches first, then teams alphabetically
+            // Sort groups: Trainers first, then teams alphabetically
             const sortedGroups = Object.keys(grouped).sort((a, b) => {
-                if (a === 'Coach') return -1;
-                if (b === 'Coach') return 1;
+                if (a === 'Trainer') return -1;
+                if (b === 'Trainer') return 1;
                 return a.localeCompare(b, undefined, { sensitivity: 'base' });
             });
+            
+            // Show message if no results found
+            if (sortedGroups.length === 0 && searchFilter) {
+                const escapedFilter = searchFilter.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+                container.innerHTML = '<div class="loading">Keine Ergebnisse gefunden für "' + escapedFilter + '"</div>';
+                return;
+            }
             
             // Build HTML with section headers
             let html = '';
@@ -863,9 +996,12 @@
                 const groupId = `group-${groupIndex}`;
                 const groupStatsId = `group-stats-${groupIndex}`;
                 
+                // Auto-expand groups when searching, otherwise collapse by default
+                const shouldCollapse = searchFilter ? '' : 'collapsed';
+                
                 // Add collapsible section header with per-group stats and add button
                 html += `
-                    <div class="group-header" onclick="toggleGroup('${groupId}')">
+                    <div class="group-header ${shouldCollapse}" onclick="toggleGroup('${groupId}')">
                         <div style="display: flex; align-items: center;">
                             <span class="group-header-icon">▼</span>
                             ${groupKey}
@@ -875,7 +1011,7 @@
                             ${kids.length} ${kids.length === 1 ? 'Person' : 'Personen'} (0 abwesend, 0 anwesend)
                         </div>
                     </div>
-                    <div class="group-content" id="${groupId}">
+                    <div class="group-content ${shouldCollapse}" id="${groupId}">
                 `;
                 
                 // Add kids in this group with swipe functionality
@@ -914,10 +1050,10 @@
             
             container.innerHTML = html;
             
-            // Initialize attendance object
-            kidsList.forEach(kid => {
-                if (attendance[kid] === undefined) {
-                    attendance[kid] = false; // Default to absent
+            // Initialize attendance object from kidsData (source of truth)
+            kidsData.forEach(kid => {
+                if (attendance[kid.name] === undefined) {
+                    attendance[kid.name] = false; // Default to absent
                 }
             });
             
@@ -973,8 +1109,8 @@
         }
         
         function updateGroupStats() {
-            // Group by team and role (same logic as renderKidsList)
-            const grouped = {};
+            // First, group ALL kids to get complete counts for each group
+            const allGrouped = {};
             kidsData.forEach(kid => {
                 const team = kid.team || 'Unknown';
                 const role = kid.role.toLowerCase();
@@ -991,29 +1127,90 @@
                     }
                 }
                 
-                if (!grouped[groupKey]) {
-                    grouped[groupKey] = [];
+                if (!allGrouped[groupKey]) {
+                    allGrouped[groupKey] = [];
                 }
-                grouped[groupKey].push(kid);
+                allGrouped[groupKey].push(kid);
             });
             
-            // Sort groups: Trainers first, then teams alphabetically
-            const sortedGroups = Object.keys(grouped).sort((a, b) => {
+            // Now apply the same filtering logic as renderKidsList to get which groups are visible
+            let filteredKids = kidsData;
+            if (searchFilter) {
+                filteredKids = kidsData.filter(kid => {
+                    const name = (kid.name || '').toLowerCase();
+                    const team = (kid.team || '').toLowerCase();
+                    const firstName = (kid.firstName || '').toLowerCase();
+                    const lastName = (kid.lastName || '').toLowerCase();
+                    
+                    // Determine group name for search
+                    const role = kid.role.toLowerCase();
+                    const isCoach = role.includes('coach') || role.includes('trainer');
+                    let groupKey = '';
+                    if (isCoach) {
+                        groupKey = 'trainer';
+                    } else {
+                        if (team.startsWith('junior-')) {
+                            groupKey = team;
+                        } else {
+                            groupKey = 'junior ' + team;
+                        }
+                    }
+                    
+                    // Search across name, first name, last name, team, and group
+                    return name.includes(searchFilter) ||
+                           firstName.includes(searchFilter) ||
+                           lastName.includes(searchFilter) ||
+                           team.includes(searchFilter) ||
+                           groupKey.includes(searchFilter);
+                });
+            }
+            
+            // Group filtered kids to determine which groups are displayed
+            const filteredGrouped = {};
+            filteredKids.forEach(kid => {
+                const team = kid.team || 'Unknown';
+                const role = kid.role.toLowerCase();
+                const isCoach = role.includes('coach') || role.includes('trainer');
+                
+                let groupKey;
+                if (isCoach) {
+                    groupKey = 'Trainer';
+                } else {
+                    if (team.toLowerCase().startsWith('junior-')) {
+                        groupKey = team;
+                    } else {
+                        groupKey = 'Junior ' + team;
+                    }
+                }
+                
+                if (!filteredGrouped[groupKey]) {
+                    filteredGrouped[groupKey] = [];
+                }
+                filteredGrouped[groupKey].push(kid);
+            });
+            
+            // Sort groups: Trainers first, then teams alphabetically (same as renderKidsList)
+            const sortedGroups = Object.keys(filteredGrouped).sort((a, b) => {
                 if (a === 'Trainer') return -1;
                 if (b === 'Trainer') return 1;
                 return a.localeCompare(b, undefined, { sensitivity: 'base' });
             });
             
-            // Update each group's stats
+            // Update each group's stats using the same group indices as renderKidsList
             sortedGroups.forEach((groupKey, groupIndex) => {
-                const kids = grouped[groupKey];
+                // Use ALL kids in this group for counting (not just filtered ones)
+                const allKidsInGroup = allGrouped[groupKey] || [];
                 const groupStatsId = `group-stats-${groupIndex}`;
                 const statsElement = document.getElementById(groupStatsId);
                 
                 if (statsElement) {
-                    const present = kids.filter(kid => attendance[kid.name] === true).length;
-                    const absent = kids.length - present;
-                    statsElement.textContent = `${kids.length} ${kids.length === 1 ? 'Person' : 'Personen'} (${absent} abwesend, ${present} anwesend)`;
+                    // Count present kids from ALL kids in the group (not just filtered)
+                    const present = allKidsInGroup.filter(kid => {
+                        const kidName = kid.name;
+                        return attendance[kidName] === true;
+                    }).length;
+                    const absent = allKidsInGroup.length - present;
+                    statsElement.textContent = `${allKidsInGroup.length} ${allKidsInGroup.length === 1 ? 'Person' : 'Personen'} (${absent} abwesend, ${present} anwesend)`;
                 }
             });
         }
@@ -1101,7 +1298,7 @@
             }
             
             if (kidsList.length === 0) {
-                showError('Keine Kinder geladen. Bitte Seite aktualisieren.');
+                showError('Keine Daten geladen. Bitte Seite aktualisieren.');
                 return;
             }
             
@@ -1191,8 +1388,8 @@
                     
                     const presentCount = data.personIds ? data.personIds.length : (data.presentKids ? data.presentKids.length : 0);
                     const message = currentRecordId && data.recordId 
-                        ? `Anwesenheit erfolgreich aktualisiert! ${presentCount} Kinder anwesend, ${data.absentKids} abwesend.`
-                        : `Anwesenheit erfolgreich gespeichert! ${presentCount} Kinder anwesend, ${data.absentKids} abwesend.`;
+                        ? `Anwesenheit erfolgreich aktualisiert! ${presentCount} anwesend, ${data.absentKids} abwesend.`
+                        : `Anwesenheit erfolgreich gespeichert! ${presentCount} anwesend, ${data.absentKids} abwesend.`;
                     showSuccess(message);
                 } else {
                     throw new Error(result.error || result.message || 'Failed to save');

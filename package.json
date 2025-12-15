@@ -5,13 +5,16 @@
   "scripts": {
     "start": "npx http-server . -p 8080 -o",
     "dev": "netlify dev",
-    "dev:simple": "npx http-server . -p 8080 -o -c-1"
+    "dev:simple": "npx http-server . -p 8080 -o -c-1",
+    "backup": "node backup-supabase.js",
+    "restore": "node restore-supabase.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
     "@supabase/supabase-js": "^2.86.0",
+    "dotenv": "^17.2.3",
     "sharp": "^0.34.5"
   },
   "devDependencies": {
