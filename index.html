@@ -26,6 +26,8 @@
     
     <!-- Splash Screen -->
     <link rel="apple-touch-startup-image" href="icon-512.png" />
+    <!-- Material Symbols (https://fonts.google.com/icons) -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
     <style>
         * {
             margin: 0;
@@ -57,7 +59,7 @@
             color: #333;
             margin-bottom: 30px;
             text-align: center;
-            font-size: 2em;
+            font-size: 1.6em;
         }
 
         .form-group {
@@ -138,6 +140,54 @@
             flex-shrink: 0;
         }
         .tournament-edit-pen:hover { opacity: 1; }
+
+        /* Tournament info block: prevent jump while loading, smooth collapse when no data */
+        #tournamentInfoGroup {
+            transition: opacity 0.25s ease, visibility 0.25s ease;
+        }
+        #tournamentInfoGroup.tournament-info-loading {
+            visibility: hidden;
+            opacity: 0;
+            min-height: 150px;
+            pointer-events: none;
+        }
+        #tournamentInfoGroup:not(.tournament-info-loading) {
+            min-height: 0;
+        }
+        #tournamentInfoSelectGroup {
+            overflow: hidden;
+            transition: max-height 0.3s ease, opacity 0.25s ease, margin-bottom 0.25s ease;
+        }
+        #tournamentInfoSelectGroup:not(.tournament-select-visible) {
+            max-height: 0;
+            opacity: 0;
+            margin-bottom: 0;
+        }
+        #tournamentInfoSelectGroup.tournament-select-visible {
+            max-height: 120px;
+            opacity: 1;
+            margin-bottom: 8px;
+        }
+        #tournamentInfoEditBlock {
+            overflow: hidden;
+            transition: max-height 0.35s ease, opacity 0.25s ease;
+        }
+        #tournamentInfoEditBlock:not(.tournament-edit-visible) {
+            max-height: 0;
+            opacity: 0;
+        }
+        #tournamentInfoEditBlock.tournament-edit-visible {
+            max-height: 180px;
+            opacity: 1;
+        }
+
+        .material-symbols-outlined {
+            font-size: 1.25em;
+            vertical-align: middle;
+        }
+        .clear-search-btn .material-symbols-outlined { font-size: 1.1em; }
+        .kid-action-btn .material-symbols-outlined { font-size: 1.1em; }
+        .group-header-icon.material-symbols-outlined { font-size: 1em; }
 
         label {
             display: block;
@@ -647,7 +697,7 @@
 <body>
     <!-- Authentication Screen -->
     <div id="authScreen" class="auth-container" style="display: none;">
-        <h1>🔒 Access Required</h1>
+        <h1><span class="material-symbols-outlined" style="vertical-align: middle;">lock</span> Access Required</h1>
         <p style="margin-bottom: 20px; color: #666;">Bitte geben Sie das Passwort ein, um auf den Anwesenheitstracker zuzugreifen.</p>
         <input type="password" id="passwordInput" placeholder="Enter password" />
         <button onclick="checkPassword()">Login</button>
@@ -656,7 +706,7 @@
 
     <!-- Main Application -->
     <div id="appScreen" class="container" style="display: none;">
-        <h1>⚽ Soccer Team Anwesenheit</h1>
+        <h1><span class="material-symbols-outlined" style="vertical-align: middle;">sports_soccer</span> Soccer Team Anwesenheit</h1>
 
         <div id="errorMessage" class="error" style="display: none;"></div>
         <div id="successMessage" class="success" style="display: none;"></div>
@@ -676,24 +726,24 @@
         </div>
 
         <div class="form-search" id="tournamentInfoGroup" style="display: none;">
-            <div class="form-group" id="tournamentInfoSelectGroup" style="margin-bottom: 8px; display: none;">
+            <div class="form-group" id="tournamentInfoSelectGroup" style="margin-bottom: 8px;">
                 <label for="tournamentInfoSelect" style="font-weight: 500;">Turnier Info:</label>
                 <div class="tournament-select-row">
                     <select id="tournamentInfoSelect">
                         <option value="">Neues Turnier / kein Filter</option>
                     </select>
-                    <button type="button" id="tournamentInfoEditBtn" class="tournament-edit-pen" title="Turnier Info bearbeiten" style="display: none;">✏️</button>
+                    <button type="button" id="tournamentInfoEditBtn" class="tournament-edit-pen" title="Turnier Info bearbeiten" style="display: none;"><span class="material-symbols-outlined" id="tournamentInfoEditBtnIcon">edit</span></button>
                 </div>
             </div>
             <div id="tournamentInfoEditBlock">
                 <label for="tournamentInfo" id="tournamentInfoLabel">Turnier Info:</label>
                 <div class="search-input-wrapper">
                     <input type="text" id="tournamentInfo" placeholder="z.B. Ort, Gegner, Runde, Notizen..." />
-                    <button type="button" id="clearTournamentInfo" class="clear-search-btn" style="display: none;" title="Info löschen">×</button>
+                    <button type="button" id="clearTournamentInfo" class="clear-search-btn" style="display: none;" title="Info löschen"><span class="material-symbols-outlined">close</span></button>
                 </div>
             </div>
             <div style="margin-top: 6px; display: flex; justify-content: flex-end;">
-                <a id="statisticsLink" href="statistics.html" style="display:none; color: #667eea; text-decoration: none; font-weight: 800;">📈 Statistik erfassen →</a>
+                <a id="statisticsLink" href="statistics.html" style="display:none; color: #667eea; text-decoration: none; font-weight: 800;"><span class="material-symbols-outlined" style="vertical-align: middle;">bar_chart</span> Statistik erfassen <span class="material-symbols-outlined" style="font-size: 0.9em;">arrow_forward</span></a>
             </div>
         </div>
 
@@ -710,7 +760,7 @@
             <label>Suchen:</label>
             <div class="search-input-wrapper">
                 <input type="text" id="searchInput" placeholder="Suche nach Name, Gruppe, etc." />
-                <button type="button" id="clearSearch" class="clear-search-btn" style="display: none;" title="Suche löschen">×</button>
+                <button type="button" id="clearSearch" class="clear-search-btn" style="display: none;" title="Suche löschen"><span class="material-symbols-outlined">close</span></button>
             </div>
         </div>
 
@@ -721,10 +771,10 @@
             </div>
         </div>
 
-        <button id="saveBtn" class="btn" onclick="saveAttendance()">💾 Anwesenheit speichern</button>
+        <button id="saveBtn" class="btn" onclick="saveAttendance()"><span class="material-symbols-outlined" style="vertical-align: middle;">save</span> Anwesenheit speichern</button>
         
         <div style="text-align: center; margin-top: 20px; display: flex; flex-direction: column; gap: 10px;">
-            <a href="export.html" style="color: #667eea; text-decoration: none; font-weight: 600;">📊 Anwesenheitsdaten exportieren →</a>
+            <a href="export.html" style="color: #667eea; text-decoration: none; font-weight: 600;"><span class="material-symbols-outlined" style="vertical-align: middle;">stacked_bar_chart</span> Anwesenheitsdaten exportieren <span class="material-symbols-outlined" style="font-size: 0.9em;">arrow_forward</span></a>
         </div>
     </div>
 
@@ -830,8 +880,19 @@
                 if (tournamentInfoInput) tournamentInfoInput.value = qpTournamentInfo;
             }
             
-            // Add event listener for date changes
+            // Add event listener for date changes — treat as new page: clear activity type and tournament info
             datePicker.addEventListener('change', async () => {
+                appliedTournamentInfoFromUrl = null;
+                const activityTypeSelect = document.getElementById('activityType');
+                const tournamentInfoInput = document.getElementById('tournamentInfo');
+                const clearTournamentInfoBtn = document.getElementById('clearTournamentInfo');
+                const tournamentInfoSelect = document.getElementById('tournamentInfoSelect');
+                if (activityTypeSelect) activityTypeSelect.value = '';
+                if (tournamentInfoInput) tournamentInfoInput.value = '';
+                if (clearTournamentInfoBtn) clearTournamentInfoBtn.style.display = 'none';
+                if (tournamentInfoSelect) tournamentInfoSelect.value = '';
+                updateTournamentUiVisibility();
+                updateStatisticsLinkVisibility();
                 await loadAttendanceForCurrentSelection();
                 updateAttendanceUrl();
             });
@@ -942,6 +1003,11 @@
             if (!group) return;
             group.style.display = activityType === 'Turnier' ? 'block' : 'none';
             if (activityType !== 'Turnier') {
+                group.classList.remove('tournament-info-loading');
+                const selectGroup = document.getElementById('tournamentInfoSelectGroup');
+                const editBlock = document.getElementById('tournamentInfoEditBlock');
+                if (selectGroup) selectGroup.classList.remove('tournament-select-visible');
+                if (editBlock) editBlock.classList.remove('tournament-edit-visible');
                 const input = document.getElementById('tournamentInfo');
                 if (input) input.value = '';
                 const clearBtn = document.getElementById('clearTournamentInfo');
@@ -950,6 +1016,7 @@
                 invalidTournamentInfoFromUrl = false;
                 appliedTournamentInfoFromUrl = null;
             } else {
+                group.classList.add('tournament-info-loading');
                 updateTournamentInfoDisplay();
             }
         }
@@ -963,7 +1030,7 @@
             if (!editBlock || !select) return;
             // If URL had tournamentInfo that wasn't in saved list, don't show the edit block
             if (invalidTournamentInfoFromUrl) {
-                editBlock.style.display = 'none';
+                editBlock.classList.remove('tournament-edit-visible');
                 if (editBtn) editBtn.style.display = 'none';
                 return;
             }
@@ -973,16 +1040,17 @@
             if (labelEl) labelEl.textContent = hasSelection ? 'Turnier Info (Bearbeiten):' : 'Turnier Info:';
             if (editBtn) {
                 editBtn.style.display = hasSelection ? 'block' : 'none';
+                const iconSpan = editBtn.querySelector('.material-symbols-outlined');
                 if (tournamentInfoEditMode) {
-                    editBtn.textContent = '💾';
+                    if (iconSpan) iconSpan.textContent = 'save';
                     editBtn.title = 'Änderung übernehmen';
                 } else {
-                    editBtn.textContent = '✏️';
+                    if (iconSpan) iconSpan.textContent = 'edit';
                     editBtn.title = 'Turnier Info bearbeiten';
                 }
             }
             const showInput = !hasSelection || tournamentInfoEditMode;
-            editBlock.style.display = showInput ? 'block' : 'none';
+            if (showInput) editBlock.classList.add('tournament-edit-visible'); else editBlock.classList.remove('tournament-edit-visible');
         }
 
         function updateAttendanceUrl() {
@@ -1266,7 +1334,7 @@
                 html += `
                     <div class="group-header ${shouldCollapse}" onclick="toggleGroup('${groupId}')">
                         <div style="display: flex; align-items: center;">
-                            <span class="group-header-icon">▼</span>
+                            <span class="group-header-icon material-symbols-outlined">expand_more</span>
                             ${groupKey}
                             <button class="add-person-btn" onclick="event.stopPropagation(); openPersonModal(null, '${groupKey.replace(/^Junior\s+/i, "")}')" title="Person hinzufügen">+</button>
                         </div>
@@ -1301,8 +1369,8 @@
                                 </label>
                             </div>
                             <div class="kid-actions">
-                                <button class="kid-action-btn edit" onclick="openPersonModal(${kidId}, null)" title="Bearbeiten">✏️</button>
-                                <button class="kid-action-btn delete" onclick="deletePerson(${kidId}, '${escapedKid}')" title="Löschen">🗑️</button>
+                                <button class="kid-action-btn edit" onclick="openPersonModal(${kidId}, null)" title="Bearbeiten"><span class="material-symbols-outlined">edit</span></button>
+                                <button class="kid-action-btn delete" onclick="deletePerson(${kidId}, '${escapedKid}')" title="Löschen"><span class="material-symbols-outlined">delete</span></button>
                             </div>
                         </div>
                     `;
@@ -1514,6 +1582,14 @@
                 await loadAttendanceData(result.data);
             } catch (error) {
                 resetAttendanceFormKeepSelection();
+            } finally {
+                const group = document.getElementById('tournamentInfoGroup');
+                if (group && activityType === 'Turnier') {
+                    // Match min-height to content before revealing so we don't jump (e.g. when &tournamentInfo is set we only show select ~120px, not 220px)
+                    group.style.minHeight = group.scrollHeight + 'px';
+                    group.classList.remove('tournament-info-loading');
+                    requestAnimationFrame(() => { group.style.minHeight = ''; });
+                }
             }
         }
 
@@ -1539,19 +1615,26 @@
                 
                 const currentValue = document.getElementById('tournamentInfo')?.value.trim() || '';
                 
-                // If there are no stored tournament infos for this date, hide the select group
+                // If there are no stored tournament infos for this date, reset select and input (collapse with transition)
                 if (!distinctInfos.length) {
                     select.innerHTML = '<option value="">Neues Turnier / kein Filter</option>';
-                    if (group) group.style.display = 'none';
+                    select.value = '';
+                    if (group) group.classList.remove('tournament-select-visible');
                     appliedTournamentInfoFromUrl = null;
                     invalidTournamentInfoFromUrl = false;
+                    const tournamentInfoInput = document.getElementById('tournamentInfo');
+                    const clearTournamentInfoBtn = document.getElementById('clearTournamentInfo');
+                    if (tournamentInfoInput) tournamentInfoInput.value = '';
+                    if (clearTournamentInfoBtn) clearTournamentInfoBtn.style.display = 'none';
+                    updateAttendanceUrl();
+                    updateTournamentInfoDisplay();
                     return;
                 }
 
                 select.innerHTML = '<option value="">Neues Turnier / kein Filter</option>' +
                     distinctInfos.map(info => `<option value="${info.replace(/"/g, '&quot;')}">${info.replace(/</g, '&lt;')}</option>`).join('');
 
-                if (group) group.style.display = 'block';
+                if (group) group.classList.add('tournament-select-visible');
                 
                 // URL param exists but is not one of the saved tournaments → treat as wrong data: clear input, don't show "Turnier Info (Bearbeiten)"
                 if (appliedTournamentInfoFromUrl && currentValue === appliedTournamentInfoFromUrl && !distinctInfos.includes(currentValue)) {

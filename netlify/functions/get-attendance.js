@@ -49,8 +49,6 @@ exports.handler = async (event, context) => {
     const activityType = event.queryStringParameters?.activityType || null;
     const tournamentInfo = event.queryStringParameters?.tournamentInfo || null;
 
-    console.log('[get-attendance] incoming query params:', event.queryStringParameters);
-
     if (!date) {
       return {
         statusCode: 400,
@@ -94,8 +92,6 @@ exports.handler = async (event, context) => {
     const { data, error } = await query
       .order('created_at', { ascending: false })
       .limit(1);
-
-    console.log('[get-attendance] query error:', error, 'data length:', data ? data.length : 0);
 
     if (error) {
       throw new Error('Database error: ' + error.message);

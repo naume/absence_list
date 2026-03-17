@@ -12,6 +12,7 @@
   <link rel="apple-touch-icon" sizes="512x512" href="icon-512.png" />
   <link rel="manifest" href="manifest.json" />
   <meta name="theme-color" content="#667eea" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
 
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -31,7 +32,7 @@
     }
     @media (min-width: 768px) { .container { padding: 30px; } }
 
-    h1 { color: #333; margin-bottom: 14px; text-align: center; font-size: 2em; }
+    h1 { color: #333; margin-bottom: 14px; text-align: center; font-size: 1.6em; }
 
     .back-btn {
       display: inline-flex;
@@ -378,12 +379,13 @@
       background: #dc3545;
       color: white;
     }
+    .material-symbols-outlined { font-size: 1.2em; vertical-align: middle; }
   </style>
 </head>
 <body>
   <div class="container">
-    <a id="backLink" class="back-btn" href="index.html">←</a>
-    <h1>📈 Turnier Statistik</h1>
+    <a id="backLink" class="back-btn" href="index.html"><span class="material-symbols-outlined">arrow_back</span></a>
+    <h1><span class="material-symbols-outlined" style="vertical-align: middle;">bar_chart</span> Turnier Statistik</h1>
 
     <div id="errorMessage" class="error"></div>
     <div id="successMessage" class="success"></div>
@@ -403,7 +405,7 @@
 
     <div class="manage">
       <div class="manage-toggle-wrap">
-        <button type="button" class="manage-toggle-btn" id="manageToggleBtn" aria-expanded="false">✏️ Statistik-Liste verwalten</button>
+        <button type="button" class="manage-toggle-btn" id="manageToggleBtn" aria-expanded="false"><span class="material-symbols-outlined">edit</span> Statistik-Liste verwalten</button>
       </div>
       <div class="manage-content collapsed" id="manageContent">
         <div class="manage-header">
@@ -439,9 +441,8 @@
           <input type="number" id="statItemSortOrder" placeholder="Zahl für Reihenfolge" min="0" step="1" />
         </div>
         <div class="modal-actions">
-          <button type="button" class="btn-secondary" id="statItemModalCancel">Abbrechen</button>
-          <button type="submit" class="btn-primary" id="statItemModalSave">Speichern</button>
           <button type="button" class="btn-danger" id="statItemModalDelete" style="display: none;">Löschen</button>
+          <button type="submit" class="btn-primary" id="statItemModalSave">Speichern</button>
         </div>
       </form>
     </div>

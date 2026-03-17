@@ -43,8 +43,6 @@ exports.handler = async (event) => {
     const date = event.queryStringParameters?.date || null;
     const activityType = event.queryStringParameters?.activityType || null;
 
-    console.log('[get-attendance-list] incoming query params:', event.queryStringParameters);
-
     let query = supabase
       .from('attendance')
       .select('id, date, activity_type, tournament_info, created_at')
@@ -59,7 +57,6 @@ exports.handler = async (event) => {
     }
 
     const { data, error } = await query;
-    console.log('[get-attendance-list] query result error:', error, 'data length:', data ? data.length : 0);
     if (error) throw new Error(error.message);
 
     return {
