@@ -59,6 +59,7 @@ BEGIN
             activity_type TEXT NOT NULL,
             total_persons INTEGER NOT NULL DEFAULT 0,
             absent INTEGER NOT NULL DEFAULT 0,
+            tournament_info TEXT,
             created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
             updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
             UNIQUE(date, activity_type)
@@ -68,6 +69,7 @@ BEGIN
         ALTER TABLE attendance 
             ADD COLUMN IF NOT EXISTS total_persons INTEGER NOT NULL DEFAULT 0,
             ADD COLUMN IF NOT EXISTS absent INTEGER NOT NULL DEFAULT 0,
+            ADD COLUMN IF NOT EXISTS tournament_info TEXT,
             ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW();
     END IF;
 END $$;
@@ -98,6 +100,27 @@ CREATE TABLE IF NOT EXISTS attendance_persons (
     UNIQUE(attendance_id, person_id)
 );
 
+-- Step 3b: Statistics definitions (extendable list)
+CREATE TABLE IF NOT EXISTS statistic_items (
+    id BIGSERIAL PRIMARY KEY,
+    name TEXT NOT NULL UNIQUE,
+    sort_order INTEGER,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Step 3c: Statistics values per attendance + person + item
+CREATE TABLE IF NOT EXISTS attendance_person_statistics (
+    id BIGSERIAL PRIMARY KEY,
+    attendance_id BIGINT NOT NULL REFERENCES attendance(id) ON DELETE CASCADE,
+    person_id BIGINT NOT NULL REFERENCES persons(id) ON DELETE CASCADE,
+    statistic_item_id BIGINT NOT NULL REFERENCES statistic_items(id) ON DELETE CASCADE,
+    value INTEGER NOT NULL DEFAULT 0,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    UNIQUE(attendance_id, person_id, statistic_item_id)
+);
+
 -- Step 4: Create indexes for better query performance
 -- Only create indexes if the tables and columns exist
 DO $$
@@ -116,6 +139,26 @@ BEGIN
         END IF;
         IF NOT EXISTS (SELECT FROM pg_indexes WHERE indexname = 'idx_attendance_persons_person_id') THEN
             CREATE INDEX idx_attendance_persons_person_id ON attendance_persons(person_id);
+        END IF;
+    END IF;
+
+    -- Indexes on statistic_items
+    IF EXISTS (SELECT FROM pg_tables WHERE schemaname = 'public' AND tablename = 'statistic_items') THEN
+        IF NOT EXISTS (SELECT FROM pg_indexes WHERE indexname = 'idx_statistic_items_sort_order') THEN
+            CREATE INDEX idx_statistic_items_sort_order ON statistic_items(sort_order);
+        END IF;
+    END IF;
+
+    -- Indexes on attendance_person_statistics
+    IF EXISTS (SELECT FROM pg_tables WHERE schemaname = 'public' AND tablename = 'attendance_person_statistics') THEN
+        IF NOT EXISTS (SELECT FROM pg_indexes WHERE indexname = 'idx_att_person_stats_attendance_id') THEN
+            CREATE INDEX idx_att_person_stats_attendance_id ON attendance_person_statistics(attendance_id);
+        END IF;
+        IF NOT EXISTS (SELECT FROM pg_indexes WHERE indexname = 'idx_att_person_stats_person_id') THEN
+            CREATE INDEX idx_att_person_stats_person_id ON attendance_person_statistics(person_id);
+        END IF;
+        IF NOT EXISTS (SELECT FROM pg_indexes WHERE indexname = 'idx_att_person_stats_item_id') THEN
+            CREATE INDEX idx_att_person_stats_item_id ON attendance_person_statistics(statistic_item_id);
         END IF;
     END IF;
     
@@ -154,10 +197,22 @@ CREATE TRIGGER update_attendance_updated_at
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
 
+CREATE TRIGGER update_statistic_items_updated_at
+    BEFORE UPDATE ON statistic_items
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_attendance_person_statistics_updated_at
+    BEFORE UPDATE ON attendance_person_statistics
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
 -- Step 7: Enable Row Level Security (RLS) on all tables
 ALTER TABLE persons ENABLE ROW LEVEL SECURITY;
 ALTER TABLE attendance ENABLE ROW LEVEL SECURITY;
 ALTER TABLE attendance_persons ENABLE ROW LEVEL SECURITY;
+ALTER TABLE statistic_items ENABLE ROW LEVEL SECURITY;
+ALTER TABLE attendance_person_statistics ENABLE ROW LEVEL SECURITY;
 
 -- Step 8: Create RLS policies to allow public access (adjust as needed for security)
 -- Policy for persons table
@@ -207,6 +262,61 @@ CREATE POLICY "Allow public delete on attendance_persons"
     ON attendance_persons FOR DELETE
     TO anon
     USING (true);
+
+-- Policy for statistic_items
+CREATE POLICY "Allow public read on statistic_items"
+    ON statistic_items FOR SELECT
+    TO anon
+    USING (true);
+
+CREATE POLICY "Allow public insert on statistic_items"
+    ON statistic_items FOR INSERT
+    TO anon
+    WITH CHECK (true);
+
+CREATE POLICY "Allow public update on statistic_items"
+    ON statistic_items FOR UPDATE
+    TO anon
+    USING (true);
+
+CREATE POLICY "Allow public delete on statistic_items"
+    ON statistic_items FOR DELETE
+    TO anon
+    USING (true);
+
+-- Policy for attendance_person_statistics
+CREATE POLICY "Allow public read on attendance_person_statistics"
+    ON attendance_person_statistics FOR SELECT
+    TO anon
+    USING (true);
+
+CREATE POLICY "Allow public insert on attendance_person_statistics"
+    ON attendance_person_statistics FOR INSERT
+    TO anon
+    WITH CHECK (true);
+
+CREATE POLICY "Allow public update on attendance_person_statistics"
+    ON attendance_person_statistics FOR UPDATE
+    TO anon
+    USING (true);
+
+CREATE POLICY "Allow public delete on attendance_person_statistics"
+    ON attendance_person_statistics FOR DELETE
+    TO anon
+    USING (true);
+
+-- Step 9: Seed default statistic items (safe inserts)
+INSERT INTO statistic_items (name, sort_order)
+VALUES
+    ('Turnover', 10),
+    ('Crosses', 20),
+    ('Headers', 30),
+    ('Passes', 40),
+    ('Incomplete passes', 50),
+    ('Shots on target', 60),
+    ('Goal', 70),
+    ('Duel / Tackle', 80)
+ON CONFLICT (name) DO NOTHING;
 
 -- Optional: Create a view for easier querying
 CREATE OR REPLACE VIEW attendance_with_persons AS

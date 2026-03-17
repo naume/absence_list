@@ -129,7 +129,8 @@ exports.handler = async (event, context) => {
       date: data.date,
       activity_type: data.activityType,
       total_persons: data.totalKids || 0,
-      absent: data.absentKids || 0
+      absent: data.absentKids || 0,
+      tournament_info: (data.tournamentInfo ?? null)
     };
 
     let attendanceId;
@@ -152,15 +153,17 @@ exports.handler = async (event, context) => {
       result = updatedData;
     } else {
       // Insert new record (with conflict handling for unique constraint)
+      // Distinguish tournaments by tournament_info (so multiple Turniere per date are possible)
       const { data: existingAttendance } = await supabase
         .from('attendance')
         .select('id')
         .eq('date', data.date)
         .eq('activity_type', data.activityType)
-        .single();
+        .eq('tournament_info', data.tournamentInfo ?? null)
+        .maybeSingle();
 
       if (existingAttendance) {
-        // Update existing record for this date/activity
+        // Update existing record for this date/activity/tournament_info
         const { data: updatedData, error: updateError } = await supabase
           .from('attendance')
           .update(attendanceRecord)

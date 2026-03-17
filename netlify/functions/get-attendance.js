@@ -44,8 +44,12 @@ exports.handler = async (event, context) => {
 
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Get date from query parameters
+    // Get filters from query parameters
     const date = event.queryStringParameters?.date;
+    const activityType = event.queryStringParameters?.activityType || null;
+    const tournamentInfo = event.queryStringParameters?.tournamentInfo || null;
+
+    console.log('[get-attendance] incoming query params:', event.queryStringParameters);
 
     if (!date) {
       return {
@@ -61,8 +65,8 @@ exports.handler = async (event, context) => {
       };
     }
 
-    // Fetch attendance record for the given date with related persons
-    const { data, error } = await supabase
+    // Build query for attendance record with related persons
+    let query = supabase
       .from('attendance')
       .select(`
         *,
@@ -78,9 +82,20 @@ exports.handler = async (event, context) => {
           )
         )
       `)
-      .eq('date', date)
+      .eq('date', date);
+
+    if (activityType) {
+      query = query.eq('activity_type', activityType);
+    }
+    if (tournamentInfo !== null && tournamentInfo !== '') {
+      query = query.eq('tournament_info', tournamentInfo);
+    }
+
+    const { data, error } = await query
       .order('created_at', { ascending: false })
       .limit(1);
+
+    console.log('[get-attendance] query error:', error, 'data length:', data ? data.length : 0);
 
     if (error) {
       throw new Error('Database error: ' + error.message);
@@ -105,11 +120,22 @@ exports.handler = async (event, context) => {
     
     // Extract present kids names from the joined persons data
     let presentKids = [];
+    let presentPersonIds = [];
+    let presentPersons = [];
     if (record.attendance_persons && Array.isArray(record.attendance_persons)) {
       presentKids = record.attendance_persons
         .map(ap => {
           if (ap.persons) {
             const person = ap.persons;
+            presentPersonIds.push(person.id);
+            presentPersons.push({
+              id: person.id,
+              pass_number: person.pass_number,
+              first_name: person.first_name,
+              last_name: person.last_name,
+              team: person.team,
+              birth_date: person.birth_date
+            });
             return `${person.first_name} ${person.last_name}`.trim();
           }
           return null;
@@ -138,8 +164,11 @@ exports.handler = async (event, context) => {
           date: record.date,
           activityType: record.activity_type,
           presentKids: presentKids,
+          presentPersonIds: presentPersonIds,
+          presentPersons: presentPersons,
           totalKids: record.total_persons || record.total_kids || 0,
-          absentKids: record.absent || record.absent_kids || 0
+          absentKids: record.absent || record.absent_kids || 0,
+          tournamentInfo: record.tournament_info || null
         }
       })
     };

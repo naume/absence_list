@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Turnier Statistik</title>
+
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png" />
+  <link rel="shortcut icon" href="favicon-32x32.png" />
+  <link rel="apple-touch-icon" sizes="192x192" href="icon-192.png" />
+  <link rel="apple-touch-icon" sizes="512x512" href="icon-512.png" />
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#667eea" />
+
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 20px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      padding: 12px;
+    }
+    @media (min-width: 768px) { .container { padding: 30px; } }
+
+    h1 { color: #333; margin-bottom: 14px; text-align: center; font-size: 2em; }
+
+    .back-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: #667eea;
+      text-decoration: none;
+      font-weight: 900;
+      background: #f0f4ff;
+      border: 1px solid #dfe8ff;
+      padding: 6px 10px;
+      border-radius: 10px;
+      font-size: 18px;
+    }
+    .back-btn:active { transform: translateY(1px); }
+
+    .topbar {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+    @media (min-width: 768px) {
+      .topbar { flex-direction: row; align-items: center; justify-content: space-between; }
+    }
+
+    .meta {
+      padding: 12px;
+      background: #f8f9fa;
+      border-radius: 10px;
+      border: 1px solid #eee;
+      display: grid;
+      gap: 6px;
+      width: 100%;
+    }
+    .meta strong { color: #333; }
+    .meta small { color: #666; }
+
+    .error {
+      background: #f8d7da;
+      color: #721c24;
+      padding: 12px;
+      border-radius: 10px;
+      margin-bottom: 14px;
+      display: none;
+    }
+    .success {
+      background: #d4edda;
+      color: #155724;
+      padding: 12px;
+      border-radius: 10px;
+      margin-bottom: 14px;
+      display: none;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+    @media (min-width: 900px) {
+      .grid { grid-template-columns: 1fr 1fr; }
+    }
+
+    .card {
+      border: 1px solid #e9ecef;
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.06);
+    }
+    .card-header {
+      background: #f0f4ff;
+      border-bottom: 1px solid #e0e8ff;
+      padding: 12px 14px;
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .card-title {
+      font-weight: 800;
+      color: #2b2f3a;
+    }
+    .card-subtitle {
+      color: #667;
+      font-size: 12px;
+      white-space: nowrap;
+    }
+    .card-body { padding: 10px 12px; }
+
+    /* Compact stat layout: tiles instead of a vertical list */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    @media (min-width: 580px) {
+      .stats-grid { grid-template-columns: 1fr 1fr 1fr; }
+    }
+    /* very small phones: single column */
+    @media (max-width: 360px) {
+      .stats-grid { grid-template-columns: 1fr; }
+    }
+
+    .stat-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 8px;
+      border: 1px solid #eee;
+      border-radius: 10px;
+      background: #fbfbfc;
+    }
+    .stat-name {
+      color: #333;
+      font-weight: 800;
+      font-size: 12px;
+      line-height: 1.2;
+      letter-spacing: 0.05px;
+      min-width: 0;
+    }
+    .counter {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: #f8f9fa;
+      border: 1px solid #eee;
+      border-radius: 999px;
+      padding: 3px 5px;
+      width: fit-content;
+      flex-shrink: 0;
+    }
+    .counter-value {
+      min-width: 18px;
+      text-align: center;
+      font-weight: 800;
+      font-size: 13px;
+      color: #333;
+    }
+    .counter button {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      border: none;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 900;
+      color: white;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      line-height: 1;
+      padding: 0;
+    }
+    .btn-minus { background: #dc3545; }
+    .btn-plus { background: #28a745; }
+    .counter button:disabled { background: #aaa; cursor: not-allowed; }
+
+    .manage {
+      margin-top: 18px;
+      padding-top: 14px;
+      border-top: 1px solid #eee;
+    }
+    .manage-toggle-wrap {
+      display: flex;
+      justify-content: flex-end;
+      margin-bottom: 8px;
+    }
+    .manage-toggle-btn {
+      background: #f0f4ff;
+      border: 1px solid #dfe8ff;
+      color: #667eea;
+      padding: 8px 14px;
+      border-radius: 10px;
+      font-weight: 700;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    .manage-toggle-btn:hover {
+      background: #e0e8ff;
+    }
+    .manage-content {
+      overflow: hidden;
+      max-height: 2000px;
+      transition: max-height 0.3s ease-out, opacity 0.2s;
+    }
+    .manage-content.collapsed {
+      max-height: 0;
+      opacity: 0;
+      pointer-events: none;
+    }
+    .manage-header {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    @media (min-width: 768px) {
+      .manage-header { flex-direction: row; align-items: center; justify-content: space-between; }
+    }
+    .manage-actions { display: flex; gap: 10px; }
+    .btn {
+      border: none;
+      border-radius: 10px;
+      padding: 10px 12px;
+      cursor: pointer;
+      font-weight: 800;
+      color: white;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+    .btn-danger { background: #dc3545; }
+    .btn-secondary { background: #6c757d; }
+    .items-list {
+      display: grid;
+      gap: 8px;
+    }
+    .item-pill {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 10px 12px;
+      background: #f8f9fa;
+      border: 1px solid #eee;
+      border-radius: 12px;
+    }
+    .item-pill strong { color: #333; }
+    .item-pill .pill-actions { display: flex; gap: 8px; }
+    .pill-actions button {
+      border: none;
+      border-radius: 10px;
+      padding: 8px 10px;
+      cursor: pointer;
+      font-weight: 800;
+      color: white;
+    }
+    .pill-edit { background: #28a745; }
+    .pill-del { background: #dc3545; }
+
+    .loading {
+      padding: 20px;
+      text-align: center;
+      color: #666;
+    }
+
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.5);
+      align-items: center;
+      justify-content: center;
+    }
+    .modal.active {
+      display: flex;
+    }
+    .modal-content {
+      background: white;
+      padding: 30px;
+      border-radius: 12px;
+      max-width: 500px;
+      width: 90%;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    .modal-header h2 {
+      margin: 0;
+      color: #333;
+    }
+    .close-modal {
+      background: none;
+      border: none;
+      font-size: 28px;
+      cursor: pointer;
+      color: #999;
+      padding: 0;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .close-modal:hover {
+      color: #333;
+    }
+    .form-group-modal {
+      margin-bottom: 20px;
+    }
+    .form-group-modal label {
+      display: block;
+      margin-bottom: 8px;
+      color: #555;
+      font-weight: 600;
+    }
+    .form-group-modal input,
+    .form-group-modal select {
+      width: 100%;
+      padding: 10px;
+      border: 2px solid #e0e0e0;
+      border-radius: 6px;
+      font-size: 16px;
+    }
+    .form-group-modal input:focus,
+    .form-group-modal select:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+    .modal-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 20px;
+      flex-wrap: wrap;
+    }
+    .modal-actions button {
+      padding: 12px;
+      border: none;
+      border-radius: 6px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .modal-actions .btn-primary {
+      flex: 1;
+      min-width: 100px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+    .modal-actions .btn-secondary {
+      background: #6c757d;
+      color: white;
+    }
+    .modal-actions .btn-danger {
+      background: #dc3545;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <a id="backLink" class="back-btn" href="index.html">←</a>
+    <h1>📈 Turnier Statistik</h1>
+
+    <div id="errorMessage" class="error"></div>
+    <div id="successMessage" class="success"></div>
+
+    <div class="topbar">
+      <div class="meta">
+        <div><strong>Datum:</strong> <span id="metaDate">-</span></div>
+        <div><strong>Typ:</strong> <span id="metaType">-</span></div>
+        <div><strong>Turnier Info:</strong> <span id="metaInfo">-</span></div>
+        <small>Es werden nur Spieler angezeigt, die in der Anwesenheit als <strong>anwesend</strong> gespeichert wurden.</small>
+      </div>
+    </div>
+
+    <div id="playersContainer" class="grid">
+      <div class="loading">Lade Statistik…</div>
+    </div>
+
+    <div class="manage">
+      <div class="manage-toggle-wrap">
+        <button type="button" class="manage-toggle-btn" id="manageToggleBtn" aria-expanded="false">✏️ Statistik-Liste verwalten</button>
+      </div>
+      <div class="manage-content collapsed" id="manageContent">
+        <div class="manage-header">
+          <div>
+            <div style="font-weight:900; color:#333;">Statistik-Liste verwalten</div>
+            <div style="color:#666; font-size:12px;">+ / bearbeiten / löschen. Die Seite ist “extendable” über diese Liste.</div>
+          </div>
+          <div class="manage-actions">
+            <button class="btn" id="addItemBtn">+ Statistik hinzufügen</button>
+            <button class="btn btn-secondary" id="reloadBtn">Neu laden</button>
+          </div>
+        </div>
+        <div id="itemsContainer" class="items-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Statistik-Item Modal (add/edit/delete) -->
+  <div id="statItemModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 id="statItemModalTitle">Statistik hinzufügen</h2>
+        <button type="button" class="close-modal" id="statItemModalClose">&times;</button>
+      </div>
+      <form id="statItemForm">
+        <input type="hidden" id="statItemId" />
+        <div class="form-group-modal">
+          <label for="statItemName">Name *</label>
+          <input type="text" id="statItemName" required placeholder="z.B. Passes, Tore, …" />
+        </div>
+        <div class="form-group-modal">
+          <label for="statItemSortOrder">Sortierung (optional)</label>
+          <input type="number" id="statItemSortOrder" placeholder="Zahl für Reihenfolge" min="0" step="1" />
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn-secondary" id="statItemModalCancel">Abbrechen</button>
+          <button type="submit" class="btn-primary" id="statItemModalSave">Speichern</button>
+          <button type="button" class="btn-danger" id="statItemModalDelete" style="display: none;">Löschen</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    // Basic auth: reuse same sessionStorage flag as index.html
+    if (sessionStorage.getItem('authenticated') !== 'true') {
+      window.location.href = 'index.html';
+    }
+
+    let attendanceId = null;
+    let statItems = [];
+    let players = [];
+    let values = {}; // personId -> statItemId -> value
+
+    function showError(message) {
+      const el = document.getElementById('errorMessage');
+      el.textContent = message;
+      el.style.display = 'block';
+      document.getElementById('successMessage').style.display = 'none';
+      setTimeout(() => { el.style.display = 'none'; }, 6000);
+    }
+
+    function showSuccess(message) {
+      const el = document.getElementById('successMessage');
+      el.textContent = message;
+      el.style.display = 'block';
+      document.getElementById('errorMessage').style.display = 'none';
+      setTimeout(() => { el.style.display = 'none'; }, 2500);
+    }
+
+    function safeDecodeTournamentInfo(value) {
+      if (value == null || value === '') return '';
+      try {
+        return decodeURIComponent(String(value));
+      } catch (e) {
+        return String(value);
+      }
+    }
+
+    function getQueryParams() {
+      const params = new URLSearchParams(window.location.search);
+      return {
+        attendanceId: params.get('attendanceId'),
+        date: params.get('date'),
+        tournamentInfo: safeDecodeTournamentInfo(params.get('tournamentInfo'))
+      };
+    }
+
+    function updateBackLink(date, tournamentInfo) {
+      const backLink = document.getElementById('backLink');
+      if (!backLink) return;
+      if (!date) {
+        backLink.href = 'index.html';
+        return;
+      }
+      const qs = new URLSearchParams();
+      qs.set('date', date);
+      if (tournamentInfo) qs.set('tournamentInfo', tournamentInfo);
+      backLink.href = `index.html?${qs.toString()}`;
+    }
+
+    async function resolveAttendanceId() {
+      const qp = getQueryParams();
+      if (qp.attendanceId) return Number(qp.attendanceId);
+      if (!qp.date) return null;
+
+      const res = await fetch(`/.netlify/functions/get-attendance?date=${encodeURIComponent(qp.date)}`);
+      const json = await res.json();
+      if (!json.success || !json.data) return null;
+      if (json.data.activityType !== 'Turnier') return null;
+      return Number(json.data.id);
+    }
+
+    function renderMeta(attendance) {
+      document.getElementById('metaDate').textContent = attendance?.date || '-';
+      document.getElementById('metaType').textContent = attendance?.activityType || '-';
+      document.getElementById('metaInfo').textContent = attendance?.tournamentInfo || '-';
+      updateBackLink(attendance?.date || null, attendance?.tournamentInfo || null);
+      updateStatisticsUrl(attendance?.date, attendance?.tournamentInfo);
+    }
+
+    function updateStatisticsUrl(date, tournamentInfo) {
+      const qp = getQueryParams();
+      const attendanceId = qp.attendanceId;
+      if (!attendanceId || !date) return;
+      const qs = new URLSearchParams();
+      qs.set('attendanceId', attendanceId);
+      qs.set('date', date);
+      if (tournamentInfo) qs.set('tournamentInfo', tournamentInfo);
+      const url = `statistics.html?${qs.toString()}`;
+      if (window.location.pathname.endsWith('statistics.html') && window.location.search !== '?' + qs.toString()) {
+        history.replaceState(null, '', url);
+      }
+    }
+
+    function getValue(personId, statItemId) {
+      const p = values?.[personId];
+      if (!p) return 0;
+      return Number(p[statItemId] || 0);
+    }
+
+    function setValue(personId, statItemId, v) {
+      if (!values[personId]) values[personId] = {};
+      values[personId][statItemId] = v;
+    }
+
+    function escapeHtml(s) {
+      return String(s || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    function renderPlayers() {
+      const container = document.getElementById('playersContainer');
+
+      if (!attendanceId) {
+        container.innerHTML = '<div class="loading">Bitte zuerst eine Turnier-Anwesenheit speichern (Button erscheint auf der Startseite nach dem Speichern).</div>';
+        return;
+      }
+
+      if (!players.length) {
+        container.innerHTML = '<div class="loading">Keine anwesenden Spieler gefunden.</div>';
+        return;
+      }
+
+      if (!statItems.length) {
+        container.innerHTML = '<div class="loading">Keine Statistik-Items vorhanden. Bitte unten hinzufügen.</div>';
+        return;
+      }
+
+      let html = '';
+      for (const player of players) {
+        const subtitle = player.team ? escapeHtml(player.team) : ' ';
+        html += `
+          <div class="card" data-person-id="${player.id}">
+            <div class="card-header">
+              <div class="card-title">${escapeHtml(player.name)}</div>
+              <div class="card-subtitle">${subtitle}</div>
+            </div>
+            <div class="card-body">
+              <div class="stats-grid">
+        `;
+
+        for (const item of statItems) {
+          const v = getValue(player.id, item.id);
+          html += `
+            <div class="stat-row" data-stat-item-id="${item.id}">
+              <div class="stat-name">${escapeHtml(item.name)}</div>
+              <div class="counter">
+                <button class="btn-minus" onclick="changeStat(${player.id}, ${item.id}, -1)">−</button>
+                <div class="counter-value" id="val-${player.id}-${item.id}">${v}</div>
+                <button class="btn-plus" onclick="changeStat(${player.id}, ${item.id}, 1)">+</button>
+              </div>
+            </div>
+          `;
+        }
+
+        html += `
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
+      container.innerHTML = html;
+    }
+
+    async function changeStat(personId, statItemId, delta) {
+      try {
+        if (!attendanceId) return;
+        const res = await fetch('/.netlify/functions/update-attendance-statistic', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            attendanceId,
+            personId,
+            statisticItemId: statItemId,
+            delta
+          })
+        });
+        const json = await res.json();
+        if (!json.success) throw new Error(json.error || 'Update failed');
+
+        setValue(personId, statItemId, json.value);
+        const el = document.getElementById(`val-${personId}-${statItemId}`);
+        if (el) el.textContent = String(json.value);
+      } catch (e) {
+        showError('Fehler beim Speichern: ' + (e.message || e));
+      }
+    }
+
+    function renderItemsManage() {
+      const container = document.getElementById('itemsContainer');
+      if (!statItems.length) {
+        container.innerHTML = '<div class="loading">Keine Statistik-Items. Bitte hinzufügen.</div>';
+        return;
+      }
+
+      container.innerHTML = statItems.map(item => `
+        <div class="item-pill">
+          <div><strong>${escapeHtml(item.name)}</strong> <span style="color:#666; font-size:12px;">(sort: ${item.sort_order ?? '-'})</span></div>
+          <div class="pill-actions">
+            <button class="pill-edit" onclick="editItem(${item.id})">Bearbeiten</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    async function loadItemsOnly() {
+      const res = await fetch('/.netlify/functions/get-stat-items');
+      const json = await res.json();
+      if (!json.success) throw new Error(json.error || 'Failed to load statistic items');
+      statItems = json.items || [];
+      renderItemsManage();
+    }
+
+    async function reloadAll() {
+      document.getElementById('playersContainer').innerHTML = '<div class="loading">Lade Statistik…</div>';
+      attendanceId = await resolveAttendanceId();
+      const qp = getQueryParams();
+      updateBackLink(qp.date || null, qp.tournamentInfo || null);
+      if (!attendanceId) {
+        statItems = [];
+        players = [];
+        values = {};
+        renderPlayers();
+        await loadItemsOnly().catch(() => {});
+        return;
+      }
+
+      const res = await fetch(`/.netlify/functions/get-attendance-statistics?attendanceId=${encodeURIComponent(attendanceId)}`);
+      const json = await res.json();
+      if (!json.success) throw new Error(json.error || 'Failed to load attendance statistics');
+
+      renderMeta(json.attendance);
+      statItems = json.items || [];
+      const allPresent = json.players || [];
+      players = allPresent.filter((p) => {
+        const t = (p.team || '').toLowerCase();
+        return !t.includes('trainer') && !t.includes('coach');
+      });
+      values = json.values || {};
+
+      renderPlayers();
+      renderItemsManage();
+    }
+
+    function openStatItemModal(mode, item) {
+      const modal = document.getElementById('statItemModal');
+      const title = document.getElementById('statItemModalTitle');
+      const form = document.getElementById('statItemForm');
+      const idInput = document.getElementById('statItemId');
+      const nameInput = document.getElementById('statItemName');
+      const sortInput = document.getElementById('statItemSortOrder');
+      const deleteBtn = document.getElementById('statItemModalDelete');
+      if (!modal || !form) return;
+      form.reset();
+      idInput.value = '';
+      if (mode === 'edit' && item) {
+        title.textContent = 'Statistik bearbeiten';
+        idInput.value = String(item.id);
+        nameInput.value = item.name || '';
+        sortInput.value = item.sort_order != null ? String(item.sort_order) : '';
+        deleteBtn.style.display = 'block';
+      } else {
+        title.textContent = 'Statistik hinzufügen';
+        deleteBtn.style.display = 'none';
+      }
+      modal.classList.add('active');
+    }
+
+    function closeStatItemModal() {
+      const modal = document.getElementById('statItemModal');
+      if (modal) modal.classList.remove('active');
+    }
+
+    async function saveStatItemForm(event) {
+      event.preventDefault();
+      const idInput = document.getElementById('statItemId');
+      const nameInput = document.getElementById('statItemName');
+      const sortInput = document.getElementById('statItemSortOrder');
+      const name = nameInput?.value?.trim();
+      if (!name) {
+        showError('Name ist erforderlich.');
+        return;
+      }
+      const sortOrderRaw = sortInput?.value?.trim();
+      const sortOrder = sortOrderRaw === '' || sortOrderRaw == null ? null : Number(sortOrderRaw);
+      const id = idInput?.value ? Number(idInput.value) : null;
+      const res = await fetch('/.netlify/functions/save-stat-item', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, name, sortOrder })
+      });
+      const json = await res.json();
+      if (!json.success) return showError(json.error || 'Fehler beim Speichern');
+      showSuccess(id ? 'Statistik aktualisiert' : 'Statistik hinzugefügt');
+      closeStatItemModal();
+      await reloadAll();
+    }
+
+    async function deleteStatItemFromModal() {
+      const idInput = document.getElementById('statItemId');
+      const id = idInput?.value ? Number(idInput.value) : null;
+      const nameInput = document.getElementById('statItemName');
+      const name = nameInput?.value?.trim() || 'Diese Statistik';
+      if (!id) return;
+      if (!confirm(`"${name}" wirklich löschen?\n\nGespeicherte Werte für diese Statistik werden ebenfalls gelöscht (Cascade).`)) return;
+      const res = await fetch('/.netlify/functions/delete-stat-item', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id })
+      });
+      const json = await res.json();
+      if (!json.success) return showError(json.error || 'Fehler beim Löschen');
+      showSuccess('Statistik gelöscht');
+      closeStatItemModal();
+      await reloadAll();
+    }
+
+    function addItem() {
+      openStatItemModal('add');
+    }
+
+    function editItem(id) {
+      const existing = statItems.find(x => x.id === id);
+      if (!existing) return;
+      openStatItemModal('edit', existing);
+    }
+
+    document.getElementById('addItemBtn').addEventListener('click', () => addItem());
+    document.getElementById('reloadBtn').addEventListener('click', () => reloadAll().catch(e => showError(e.message || e)));
+
+    const statItemForm = document.getElementById('statItemForm');
+    if (statItemForm) statItemForm.addEventListener('submit', (e) => saveStatItemForm(e));
+    document.getElementById('statItemModalClose')?.addEventListener('click', closeStatItemModal);
+    document.getElementById('statItemModalCancel')?.addEventListener('click', closeStatItemModal);
+    document.getElementById('statItemModalDelete')?.addEventListener('click', () => deleteStatItemFromModal());
+    document.getElementById('statItemModal')?.addEventListener('click', (e) => {
+      if (e.target.id === 'statItemModal') closeStatItemModal();
+    });
+
+    const manageToggleBtn = document.getElementById('manageToggleBtn');
+    const manageContent = document.getElementById('manageContent');
+    if (manageToggleBtn && manageContent) {
+      manageToggleBtn.addEventListener('click', () => {
+        const collapsed = manageContent.classList.toggle('collapsed');
+        manageToggleBtn.setAttribute('aria-expanded', String(!collapsed));
+      });
+    }
+
+    reloadAll().catch(e => showError(e.message || e));
+  </script>
+</body>
+</html>
+

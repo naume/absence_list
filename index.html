@@ -20,7 +20,7 @@
     
     <!-- Theme Color -->
     <meta name="theme-color" content="#667eea" />
-    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Anwesenheit" />
     
@@ -119,6 +119,26 @@
             color: #764ba2;
         }
 
+        .tournament-select-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .tournament-select-row select {
+            flex: 1;
+        }
+        .tournament-edit-pen {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 1rem;
+            padding: 2px 6px;
+            vertical-align: middle;
+            opacity: 0.85;
+            flex-shrink: 0;
+        }
+        .tournament-edit-pen:hover { opacity: 1; }
+
         label {
             display: block;
             margin-bottom: 8px;
@@ -130,17 +150,47 @@
         input[type="date"],
         select {
             width: 100%;
-            padding: 12px;
+            padding: 12px 14px;
             border: 2px solid #e0e0e0;
             border-radius: 8px;
             font-size: 16px;
+            color: #333;
             transition: border-color 0.3s;
+            min-height: 48px;
+            box-sizing: border-box;
+            -webkit-appearance: none;
+            appearance: none;
+            background-color: #fff;
         }
-
+        /* iOS: consistent date/select look and prevent zoom */
+        input[type="date"] {
+            font-family: inherit;
+        }
+        input[type="date"]::-webkit-date-and-time-value {
+            text-align: left;
+            color: #333;
+        }
+        select option {
+            color: #333;
+            background: #fff;
+        }
+        select {
+            padding-right: 36px;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23555' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 14px center;
+        }
         input[type="date"]:focus,
         select:focus {
             outline: none;
             border-color: #667eea;
+        }
+        @supports (-webkit-touch-callout: none) {
+            input[type="date"],
+            select {
+                min-height: 48px;
+                -webkit-tap-highlight-color: transparent;
+            }
         }
 
         .kids-list {
@@ -537,12 +587,30 @@
         .form-group-modal input,
         .form-group-modal select {
             width: 100%;
-            padding: 10px;
+            padding: 10px 12px;
             border: 2px solid #e0e0e0;
             border-radius: 6px;
             font-size: 16px;
+            color: #333;
+            min-height: 44px;
+            box-sizing: border-box;
+            -webkit-appearance: none;
+            appearance: none;
+            background-color: #fff;
         }
-
+        .form-group-modal select option {
+            color: #333;
+            background: #fff;
+        }
+        .form-group-modal input[type="date"]::-webkit-date-and-time-value {
+            color: #333;
+        }
+        .form-group-modal select {
+            padding-right: 32px;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23555' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+        }
         .form-group-modal input:focus,
         .form-group-modal select:focus {
             outline: none;
@@ -605,6 +673,28 @@
                 <option value="Training">Training</option>
                 <option value="Turnier">Turnier</option>
             </select>
+        </div>
+
+        <div class="form-search" id="tournamentInfoGroup" style="display: none;">
+            <div class="form-group" id="tournamentInfoSelectGroup" style="margin-bottom: 8px; display: none;">
+                <label for="tournamentInfoSelect" style="font-weight: 500;">Turnier Info:</label>
+                <div class="tournament-select-row">
+                    <select id="tournamentInfoSelect">
+                        <option value="">Neues Turnier / kein Filter</option>
+                    </select>
+                    <button type="button" id="tournamentInfoEditBtn" class="tournament-edit-pen" title="Turnier Info bearbeiten" style="display: none;">✏️</button>
+                </div>
+            </div>
+            <div id="tournamentInfoEditBlock">
+                <label for="tournamentInfo" id="tournamentInfoLabel">Turnier Info:</label>
+                <div class="search-input-wrapper">
+                    <input type="text" id="tournamentInfo" placeholder="z.B. Ort, Gegner, Runde, Notizen..." />
+                    <button type="button" id="clearTournamentInfo" class="clear-search-btn" style="display: none;" title="Info löschen">×</button>
+                </div>
+            </div>
+            <div style="margin-top: 6px; display: flex; justify-content: flex-end;">
+                <a id="statisticsLink" href="statistics.html" style="display:none; color: #667eea; text-decoration: none; font-weight: 800;">📈 Statistik erfassen →</a>
+            </div>
         </div>
 
         <div class="stats">
@@ -703,6 +793,18 @@
         let attendance = {};
         let currentRecordId = null; // Track the current record ID for updates
         let searchFilter = ''; // Current search filter text
+        let tournamentInfoEditMode = false; // true = show input for editing (pen clicked)
+        let appliedTournamentInfoFromUrl = null; // value we set from ?tournamentInfo= (to detect invalid URL param)
+        let invalidTournamentInfoFromUrl = false; // true = hide "Turnier Info (Bearbeiten)" because URL param was not in saved list
+
+        function safeDecodeTournamentInfo(value) {
+            if (value == null || value === '') return '';
+            try {
+                return decodeURIComponent(String(value));
+            } catch (e) {
+                return String(value);
+            }
+        }
 
         // Check authentication on page load
         window.addEventListener('DOMContentLoaded', () => {
@@ -713,19 +815,43 @@
                 showAuth();
             }
             
-            // Set today's date as default
-            const today = new Date().toISOString().split('T')[0];
+            // Set date and optional tournamentInfo from query params (?date=...&tournamentInfo=...)
             const datePicker = document.getElementById('datePicker');
-            datePicker.value = today;
+            const params = new URLSearchParams(window.location.search);
+            const qpDate = params.get('date');
+            const qpTournamentInfo = safeDecodeTournamentInfo(params.get('tournamentInfo'));
+            const today = new Date().toISOString().split('T')[0];
+            datePicker.value = qpDate || today;
+            if (qpTournamentInfo) {
+                appliedTournamentInfoFromUrl = qpTournamentInfo;
+                const activityTypeSelect = document.getElementById('activityType');
+                if (activityTypeSelect) activityTypeSelect.value = 'Turnier';
+                const tournamentInfoInput = document.getElementById('tournamentInfo');
+                if (tournamentInfoInput) tournamentInfoInput.value = qpTournamentInfo;
+            }
             
             // Add event listener for date changes
             datePicker.addEventListener('change', async () => {
-                await loadAttendanceForDate(datePicker.value);
+                await loadAttendanceForCurrentSelection();
+                updateAttendanceUrl();
             });
+
+            // Add event listener for activity type changes (Turnier-only UI)
+            const activityTypeSelect = document.getElementById('activityType');
+            if (activityTypeSelect) {
+                activityTypeSelect.addEventListener('change', async () => {
+                    updateTournamentUiVisibility();
+                    updateStatisticsLinkVisibility();
+                    await loadAttendanceForCurrentSelection();
+                });
+            }
             
             // Add event listener for search input
             const searchInput = document.getElementById('searchInput');
             const clearSearchBtn = document.getElementById('clearSearch');
+            const tournamentInfoInput = document.getElementById('tournamentInfo');
+            const clearTournamentInfoBtn = document.getElementById('clearTournamentInfo');
+            const tournamentInfoSelect = document.getElementById('tournamentInfoSelect');
             
             if (searchInput) {
                 // Function to update search and toggle clear button
@@ -752,7 +878,145 @@
                     });
                 }
             }
+
+            // Turnier info clear button behavior (same UX as search)
+            if (tournamentInfoInput && clearTournamentInfoBtn) {
+                const updateTournamentClear = () => {
+                    clearTournamentInfoBtn.style.display = tournamentInfoInput.value.trim() ? 'block' : 'none';
+                    invalidTournamentInfoFromUrl = false;
+                };
+                tournamentInfoInput.addEventListener('input', updateTournamentClear);
+                clearTournamentInfoBtn.addEventListener('click', () => {
+                    tournamentInfoInput.value = '';
+                    clearTournamentInfoBtn.style.display = 'none';
+                    tournamentInfoInput.focus();
+                    loadAttendanceForCurrentSelection();
+                });
+            }
+
+            // Select existing tournamentInfo for this date
+            if (tournamentInfoSelect) {
+                tournamentInfoSelect.addEventListener('change', async () => {
+                    tournamentInfoEditMode = false;
+                    invalidTournamentInfoFromUrl = false;
+                    appliedTournamentInfoFromUrl = null;
+                    const value = tournamentInfoSelect.value;
+                    if (tournamentInfoInput) {
+                        tournamentInfoInput.value = value;
+                        if (clearTournamentInfoBtn) {
+                            clearTournamentInfoBtn.style.display = value.trim() ? 'block' : 'none';
+                        }
+                    }
+                    // "Neues Turnier / kein Filter" = start fresh for a new tournament; don't load an existing one
+                    if (value === '') {
+                        resetAttendanceFormKeepSelection();
+                        updateTournamentInfoDisplay();
+                        updateAttendanceUrl();
+                        return;
+                    }
+                    await loadAttendanceForCurrentSelection();
+                    updateTournamentInfoDisplay();
+                    updateAttendanceUrl();
+                });
+            }
+            const tournamentInfoEditBtn = document.getElementById('tournamentInfoEditBtn');
+            if (tournamentInfoEditBtn && tournamentInfoInput) {
+                tournamentInfoEditBtn.addEventListener('click', async () => {
+                    const select = document.getElementById('tournamentInfoSelect');
+                    if (tournamentInfoEditMode) {
+                        await saveAttendance();
+                    } else {
+                        tournamentInfoEditMode = true;
+                        if (select && select.value) tournamentInfoInput.value = select.value;
+                        if (clearTournamentInfoBtn) clearTournamentInfoBtn.style.display = 'block';
+                        updateTournamentInfoDisplay();
+                        tournamentInfoInput.focus();
+                    }
+                });
+            }
         });
+
+        function updateTournamentUiVisibility() {
+            const activityType = document.getElementById('activityType')?.value;
+            const group = document.getElementById('tournamentInfoGroup');
+            if (!group) return;
+            group.style.display = activityType === 'Turnier' ? 'block' : 'none';
+            if (activityType !== 'Turnier') {
+                const input = document.getElementById('tournamentInfo');
+                if (input) input.value = '';
+                const clearBtn = document.getElementById('clearTournamentInfo');
+                if (clearBtn) clearBtn.style.display = 'none';
+                tournamentInfoEditMode = false;
+                invalidTournamentInfoFromUrl = false;
+                appliedTournamentInfoFromUrl = null;
+            } else {
+                updateTournamentInfoDisplay();
+            }
+        }
+
+        function updateTournamentInfoDisplay() {
+            const activityType = document.getElementById('activityType')?.value;
+            if (activityType !== 'Turnier') return;
+            const editBlock = document.getElementById('tournamentInfoEditBlock');
+            const select = document.getElementById('tournamentInfoSelect');
+            const editBtn = document.getElementById('tournamentInfoEditBtn');
+            if (!editBlock || !select) return;
+            // If URL had tournamentInfo that wasn't in saved list, don't show the edit block
+            if (invalidTournamentInfoFromUrl) {
+                editBlock.style.display = 'none';
+                if (editBtn) editBtn.style.display = 'none';
+                return;
+            }
+            const selectedValue = select.value || '';
+            const hasSelection = selectedValue !== '';
+            const labelEl = document.getElementById('tournamentInfoLabel');
+            if (labelEl) labelEl.textContent = hasSelection ? 'Turnier Info (Bearbeiten):' : 'Turnier Info:';
+            if (editBtn) {
+                editBtn.style.display = hasSelection ? 'block' : 'none';
+                if (tournamentInfoEditMode) {
+                    editBtn.textContent = '💾';
+                    editBtn.title = 'Änderung übernehmen';
+                } else {
+                    editBtn.textContent = '✏️';
+                    editBtn.title = 'Turnier Info bearbeiten';
+                }
+            }
+            const showInput = !hasSelection || tournamentInfoEditMode;
+            editBlock.style.display = showInput ? 'block' : 'none';
+        }
+
+        function updateAttendanceUrl() {
+            const date = document.getElementById('datePicker')?.value;
+            const activityType = document.getElementById('activityType')?.value;
+            const tournamentInfo = document.getElementById('tournamentInfo')?.value?.trim() || '';
+            const params = new URLSearchParams();
+            if (date) params.set('date', date);
+            if (activityType === 'Turnier' && tournamentInfo) params.set('tournamentInfo', tournamentInfo);
+            const qs = params.toString();
+            const url = qs ? `${window.location.pathname}?${qs}` : window.location.pathname;
+            if (window.location.search !== (qs ? '?' + qs : '')) {
+                history.replaceState(null, '', url);
+            }
+        }
+
+        function updateStatisticsLinkVisibility() {
+            const link = document.getElementById('statisticsLink');
+            if (!link) return;
+            const date = document.getElementById('datePicker')?.value;
+            const activityType = document.getElementById('activityType')?.value;
+            const tournamentInfo = document.getElementById('tournamentInfo')?.value?.trim() || '';
+            const canShow = activityType === 'Turnier' && !!currentRecordId;
+            if (!canShow) {
+                link.style.display = 'none';
+                return;
+            }
+            const qs = new URLSearchParams();
+            if (currentRecordId) qs.set('attendanceId', String(currentRecordId));
+            if (date) qs.set('date', date);
+            if (tournamentInfo) qs.set('tournamentInfo', tournamentInfo);
+            link.href = `statistics.html?${qs.toString()}`;
+            link.style.display = 'inline';
+        }
 
         function showAuth() {
             document.getElementById('authScreen').style.display = 'block';
@@ -763,11 +1027,10 @@
             document.getElementById('authScreen').style.display = 'none';
             document.getElementById('appScreen').style.display = 'block';
             loadKidsList().then(() => {
-                // After kids list is loaded, load attendance for the selected date
-                const date = document.getElementById('datePicker').value;
-                if (date) {
-                    loadAttendanceForDate(date);
-                }
+                updateTournamentUiVisibility();
+                updateStatisticsLinkVisibility();
+                // After kids list is loaded, load attendance for the selected date / selection
+                loadAttendanceForCurrentSelection();
             });
         }
 
@@ -1215,42 +1478,130 @@
             });
         }
 
-        async function loadAttendanceForDate(date) {
+        async function loadAttendanceForCurrentSelection() {
+            const date = document.getElementById('datePicker')?.value;
+            const activityType = document.getElementById('activityType')?.value || null;
+            const tournamentInfoRaw = document.getElementById('tournamentInfo')?.value || '';
+            const tournamentInfo = tournamentInfoRaw.trim();
+            
             if (!date) {
-                // Reset to default state if no date selected
                 resetAttendanceForm();
                 return;
             }
             
             try {
-                const response = await fetch(`/.netlify/functions/get-attendance?date=${date}`);
+                // Load available tournaments for this date when Turnier is selected
+                if (activityType === 'Turnier') {
+                    await loadTournamentOptionsForDate(date);
+                }
+                
+                const params = new URLSearchParams();
+                params.set('date', date);
+                if (activityType) params.set('activityType', activityType);
+                if (activityType === 'Turnier' && tournamentInfo) {
+                    params.set('tournamentInfo', tournamentInfo);
+                }
+                
+                const response = await fetch(`/.netlify/functions/get-attendance?${params.toString()}`);
                 const result = await response.json();
                 
-                if (!result.success) {
-                    // No data for this date, reset to default
-                    resetAttendanceForm();
+                if (!result.success || !result.data) {
+                    // No data for this selection, reset but keep selection and stats link hidden
+                    resetAttendanceFormKeepSelection();
                     return;
                 }
                 
-                if (result.data) {
-                    // Load existing data
-                    loadAttendanceData(result.data);
-                } else {
-                    // No data found, reset to default
-                    resetAttendanceForm();
-                }
+                await loadAttendanceData(result.data);
             } catch (error) {
-                // On error, just reset to default (don't show error for missing data)
-                resetAttendanceForm();
+                resetAttendanceFormKeepSelection();
+            }
+        }
+
+        async function loadTournamentOptionsForDate(date) {
+            const select = document.getElementById('tournamentInfoSelect');
+            const group = document.getElementById('tournamentInfoSelectGroup');
+            if (!select) return;
+            
+            try {
+                const params = new URLSearchParams();
+                params.set('date', date);
+                params.set('activityType', 'Turnier');
+                
+                const response = await fetch(`/.netlify/functions/get-attendance-list?${params.toString()}`);
+                const result = await response.json();
+                
+                if (!result.success) return;
+                
+                const records = result.data || [];
+                const distinctInfos = [...new Set(records.map(r => r.tournament_info || '').filter(x => x !== ''))].sort((a, b) =>
+                    a.localeCompare(b, undefined, { sensitivity: 'base' })
+                );
+                
+                const currentValue = document.getElementById('tournamentInfo')?.value.trim() || '';
+                
+                // If there are no stored tournament infos for this date, hide the select group
+                if (!distinctInfos.length) {
+                    select.innerHTML = '<option value="">Neues Turnier / kein Filter</option>';
+                    if (group) group.style.display = 'none';
+                    appliedTournamentInfoFromUrl = null;
+                    invalidTournamentInfoFromUrl = false;
+                    return;
+                }
+
+                select.innerHTML = '<option value="">Neues Turnier / kein Filter</option>' +
+                    distinctInfos.map(info => `<option value="${info.replace(/"/g, '&quot;')}">${info.replace(/</g, '&lt;')}</option>`).join('');
+
+                if (group) group.style.display = 'block';
+                
+                // URL param exists but is not one of the saved tournaments → treat as wrong data: clear input, don't show "Turnier Info (Bearbeiten)"
+                if (appliedTournamentInfoFromUrl && currentValue === appliedTournamentInfoFromUrl && !distinctInfos.includes(currentValue)) {
+                    appliedTournamentInfoFromUrl = null;
+                    invalidTournamentInfoFromUrl = true;
+                    const tournamentInfoInput = document.getElementById('tournamentInfo');
+                    const clearTournamentInfoBtn = document.getElementById('clearTournamentInfo');
+                    if (tournamentInfoInput) tournamentInfoInput.value = '';
+                    if (clearTournamentInfoBtn) clearTournamentInfoBtn.style.display = 'none';
+                    select.value = '';
+                    updateAttendanceUrl();
+                    updateTournamentInfoDisplay();
+                    return;
+                }
+                
+                // Restore selection if possible
+                if (currentValue && distinctInfos.includes(currentValue)) {
+                    select.value = currentValue;
+                } else {
+                    select.value = '';
+                }
+                invalidTournamentInfoFromUrl = false;
+            } catch (e) {
+                // ignore errors here; just leave select as-is
             }
         }
         
-        function loadAttendanceData(data) {
+        async function loadAttendanceData(data) {
             // Store the record ID for updates
             currentRecordId = data.id;
             
-            // Set activity type
+            // Set activity type and tournament info from loaded data so UI matches what we fetched
             document.getElementById('activityType').value = data.activityType || '';
+            invalidTournamentInfoFromUrl = false;
+            appliedTournamentInfoFromUrl = null;
+
+            const tournamentInfoInput = document.getElementById('tournamentInfo');
+            const clearTournamentInfoBtn = document.getElementById('clearTournamentInfo');
+            if (tournamentInfoInput) {
+                tournamentInfoInput.value = data.tournamentInfo || '';
+                if (clearTournamentInfoBtn) {
+                    clearTournamentInfoBtn.style.display = (data.tournamentInfo || '').trim() ? 'block' : 'none';
+                }
+            }
+            updateTournamentUiVisibility();
+            
+            // When we loaded a Turnier, populate the "Gespeicherte Turniere" dropdown for this date
+            if (data.activityType === 'Turnier' && data.date) {
+                await loadTournamentOptionsForDate(data.date);
+            }
             
             // Reset all attendance to false (absent)
             kidsList.forEach(kid => {
@@ -1269,6 +1620,9 @@
             // Re-render the list with updated attendance
             renderKidsList();
             updateStats();
+            updateTournamentInfoDisplay();
+            updateStatisticsLinkVisibility();
+            updateAttendanceUrl();
         }
         
         function resetAttendanceForm() {
@@ -1277,6 +1631,11 @@
             
             // Reset activity type
             document.getElementById('activityType').value = '';
+
+            // Reset tournament info
+            const tournamentInfoInput = document.getElementById('tournamentInfo');
+            if (tournamentInfoInput) tournamentInfoInput.value = '';
+            updateTournamentUiVisibility();
             
             // Reset all attendance to false (absent)
             kidsList.forEach(kid => {
@@ -1286,11 +1645,27 @@
             // Re-render the list
             renderKidsList();
             updateStats();
+            updateStatisticsLinkVisibility();
+        }
+
+        function resetAttendanceFormKeepSelection() {
+            // Keep current date, activity type, tournament info, but clear attendance + record id
+            currentRecordId = null;
+            
+            // Reset all attendance to false (absent)
+            kidsList.forEach(kid => {
+                attendance[kid] = false;
+            });
+            
+            renderKidsList();
+            updateStats();
+            updateStatisticsLinkVisibility();
         }
 
         async function saveAttendance() {
             const date = document.getElementById('datePicker').value;
             const activityType = document.getElementById('activityType').value;
+            const tournamentInfo = document.getElementById('tournamentInfo')?.value?.trim() || '';
             
             if (!date || !activityType) {
                 showError('Bitte wählen Sie sowohl Datum als auch Typ aus.');
@@ -1322,7 +1697,8 @@
                 personIds: personIds, // Only send person IDs
                 totalKids: kidsList.length,
                 absentKids: kidsList.length - presentKidsNames.length,
-                recordId: currentRecordId // Include record ID if updating existing record
+                recordId: currentRecordId, // Include record ID if updating existing record
+                tournamentInfo: activityType === 'Turnier' ? tournamentInfo : null
             };
             
             try {
@@ -1391,6 +1767,14 @@
                         ? `Anwesenheit erfolgreich aktualisiert! ${presentCount} anwesend, ${data.absentKids} abwesend.`
                         : `Anwesenheit erfolgreich gespeichert! ${presentCount} anwesend, ${data.absentKids} abwesend.`;
                     showSuccess(message);
+                    updateStatisticsLinkVisibility();
+                    // Refresh "Gespeicherte Turniere" dropdown so new tournamentInfo appears
+                    if (data.activityType === 'Turnier' && data.date) {
+                        await loadTournamentOptionsForDate(data.date);
+                        tournamentInfoEditMode = false;
+                        updateTournamentInfoDisplay();
+                        updateAttendanceUrl();
+                    }
                 } else {
                     throw new Error(result.error || result.message || 'Failed to save');
                 }
