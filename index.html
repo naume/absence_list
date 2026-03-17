@@ -1706,6 +1706,13 @@
             updateTournamentInfoDisplay();
             updateStatisticsLinkVisibility();
             updateAttendanceUrl();
+            // Data is fully loaded: remove loading state from tournament block so it becomes visible
+            const group = document.getElementById('tournamentInfoGroup');
+            if (group) {
+                group.style.minHeight = group.scrollHeight + 'px';
+                group.classList.remove('tournament-info-loading');
+                requestAnimationFrame(() => { group.style.minHeight = ''; });
+            }
         }
         
         function resetAttendanceForm() {
