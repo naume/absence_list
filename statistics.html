@@ -93,8 +93,13 @@
       grid-template-columns: 1fr;
       gap: 12px;
     }
-    @media (min-width: 900px) {
+    
+    @media (min-width: 520px) {
       .grid { grid-template-columns: 1fr 1fr; }
+    }
+
+    @media (min-width: 768px) {
+      .grid { grid-template-columns: 1fr 1fr 1fr; }
     }
 
     .card {
@@ -123,20 +128,6 @@
     }
     .card-body { padding: 10px 12px; }
 
-    /* Compact stat layout: tiles instead of a vertical list */
-    .stats-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 8px;
-    }
-    @media (min-width: 580px) {
-      .stats-grid { grid-template-columns: 1fr 1fr 1fr; }
-    }
-    /* very small phones: single column */
-    @media (max-width: 360px) {
-      .stats-grid { grid-template-columns: 1fr; }
-    }
-
     .stat-row {
       display: grid;
       grid-template-columns: 1fr auto;
@@ -154,6 +145,26 @@
       line-height: 1.2;
       letter-spacing: 0.05px;
       min-width: 0;
+    }
+    .stat-players-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .player-stat-name {
+      display: block;
+      font-weight: 800;
+      font-size: 13px;
+      color: #2b2f3a;
+      line-height: 1.2;
+    }
+    .player-stat-team {
+      display: block;
+      margin-top: 3px;
+      font-weight: 600;
+      font-size: 11px;
+      color: #667;
+      line-height: 1.2;
     }
     .counter {
       display: inline-flex;
@@ -560,6 +571,17 @@
         .replace(/'/g, '&#039;');
     }
 
+    /** View-only: "Damjan Keculovski" → "Damjan K." (first token + initial of second). */
+    function formatStatPlayerName(name) {
+      const trimmed = String(name || '').trim();
+      if (!trimmed) return '';
+      const parts = trimmed.split(/\s+/).filter(Boolean);
+      if (parts.length < 2) return trimmed;
+      const initial = parts[1].charAt(0);
+      if (!initial) return parts[0];
+      return `${parts[0]} ${initial.toLocaleUpperCase()}.`;
+    }
+
     function renderPlayers() {
       const container = document.getElementById('playersContainer');
 
@@ -579,23 +601,27 @@
       }
 
       let html = '';
-      for (const player of players) {
-        const subtitle = player.team ? escapeHtml(player.team) : ' ';
+      for (const item of statItems) {
         html += `
-          <div class="card" data-person-id="${player.id}">
+          <div class="card" data-stat-item-id="${item.id}">
             <div class="card-header">
-              <div class="card-title">${escapeHtml(player.name)}</div>
-              <div class="card-subtitle">${subtitle}</div>
+              <div class="card-title">${escapeHtml(item.name)}</div>
             </div>
             <div class="card-body">
-              <div class="stats-grid">
+              <div class="stat-players-list">
         `;
 
-        for (const item of statItems) {
+        for (const player of players) {
           const v = getValue(player.id, item.id);
+          const teamLine = player.team
+            ? `<span class="player-stat-team">${escapeHtml(player.team)}</span>`
+            : '';
           html += `
-            <div class="stat-row" data-stat-item-id="${item.id}">
-              <div class="stat-name">${escapeHtml(item.name)}</div>
+            <div class="stat-row" data-person-id="${player.id}">
+              <div class="stat-name">
+                <span class="player-stat-name">${escapeHtml(formatStatPlayerName(player.name))}</span>
+                ${teamLine}
+              </div>
               <div class="counter">
                 <button class="btn-minus" onclick="changeStat(${player.id}, ${item.id}, -1)">−</button>
                 <div class="counter-value" id="val-${player.id}-${item.id}">${v}</div>
